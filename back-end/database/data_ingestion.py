@@ -3,11 +3,11 @@ import pandas as pd
 from connect import supabase
 
 tabelas = [
-    ('professor.csv', 'PROFESSOR'),
-    ('disciplina.csv', 'DISCIPLINA'),
-    ('horario.csv', 'HORARIO'),
-    ('alocacao.csv', 'ALOCACAO'),       
-    ('grade_horaria.csv', 'GRADE_HORARIA') 
+    ('PROFESSOR.xlsx', 'PROFESSOR'),
+    ('DISCIPLINA.xlsx', 'DISCIPLINA'),
+    ('HORARIO.xlsx', 'HORARIO'),
+    ('ALOCACAO.xlsx', 'ALOCACAO'),       
+    ('GRADE_HORARIA.xlsx', 'GRADE_HORARIA') 
 ]
 
 def csv_supabase(tabelas):
