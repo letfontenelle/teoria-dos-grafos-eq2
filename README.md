@@ -17,3 +17,16 @@ Para a resolução do problema de agendamento de horários (Perfil Curricular e 
   * As cores disponíveis no algoritmo correspondem aos registros da tabela `HO_HORARIO`.
   * **Objetivo:** Aplicar o algoritmo de coloração de grafos (ex: DSATUR) de modo que dois nós conectados por uma aresta recebam cores (horários) distintas.
   * O resultado final é persistido na tabela `GRA_GRADE_HORARIA`.
+
+## Algoritmo e Heurística Utilizada
+Para a resolução do problema de coloração do grafo, foi implementado o Algoritmo Guloso (Greedy Coloring) utilizando a heurística DSATUR (Degree of Saturation), disponibilizado pela biblioteca NetworkX (nx.coloring.greedy_color(G, strategy="DSATUR")).
+
+Funcionamento do algoritmo:
+* Saturação Dinâmica: A cada passo, o DSATUR calcula a quantidade de cores (horários) distintas já atribuídas aos nós vizinhos de cada vértice não colorido.
+* Priorização por Restrição: O algoritmo prioriza a alocação dos nós com maior grau de saturação — ou seja, resolve primeiro as aulas que possuem mais restrições acumuladas e estão mais "encurraladas".
+* Atribuição Gulosa: Para a aula selecionada, é atribuído o menor slot de horário (cor) disponível que não cause choques com os seus vizinhos.
+
+Justificativa Técnica:
+* Complexidade e Desempenho: O problema de coloração de grafos é NP-Difícil (NP-Hard). A abordagem gulosa com DSATUR encontra uma solução viável em milissegundos, evitando o custo computacional impraticável da busca exata.
+* Otimização de Horários: O DSATUR é uma das melhores heurísticas da literatura para aproximar o Número Cromático $\chi(G)$ do grafo, minimizando a quantidade total de slots de tempo necessários para alocar todas as matérias.
+* Garantia de Zero Conflitos: A validação estrita das arestas antes da atribuição de cada cor garante matematicamente uma grade horária 100% livre de choques para professores e alunos.
