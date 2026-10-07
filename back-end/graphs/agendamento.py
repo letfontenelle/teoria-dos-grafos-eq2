@@ -1,25 +1,21 @@
 """
 Agendamento: monta a grade de horários com busca gulosa.
 
-Como funciona (resumo):
-  1. Cada aula vira "sessões" de 2 horários (um BLOCO). Uma aula de 4 horários
-     vira 2 sessões, uma de 2 horários vira 1. Uma aula de 3 horários (45h) vira
-     UMA sessão contínua que ocupa um bloco e metade do seguinte (10:30 às 13:00).
-  2. A semana tem 30 blocos: 6 por dia (A a F) x 5 dias.
-       A 07:10-08:50 | B 08:50-10:30 | C 10:30-12:10
-       D 12:10-13:50 | E 13:50-15:30 | F 15:30-17:10
-  3. O grafo de conflitos (graph.py, Edward) liga duas sessões que não podem
-     acontecer juntas: mesmo professor, mesmo período ou mesma aula.
-  4. Busca gulosa: pegamos as sessões em uma ordem (alfabética por professor)
-     e colocamos cada uma em um bloco onde nenhuma sessão ligada a ela já está.
-     Se bater, o bloco é descartado e tentamos outro.
-  5. Manhã primeiro: só usamos a tarde (D, E, F) quando uma sessão não cabe em
-     nenhum bloco livre da manhã (A, B, C). Dentro do turno, espalhamos: entre
-     os blocos livres escolhemos o menos ocupado e evitamos colocar duas
-     sessões da mesma aula no mesmo dia.
+1. Cada aula é dividida em sessões de 2 horários (um bloco). Aula de 4 horários
+   gera 2 sessões; de 2 horários, 1 sessão; de 3 horários, 1 sessão contínua
+   (um bloco e metade do seguinte, ex.: 10:30 às 13:00).
+2. A semana tem 30 blocos: 6 por dia (A a F) x 5 dias.
+     A 07:10-08:50 | B 08:50-10:30 | C 10:30-12:10
+     D 12:10-13:50 | E 13:50-15:30 | F 15:30-17:10
+3. O grafo de conflitos (graph.py) liga sessões que não podem ocorrer juntas:
+   mesmo professor, mesmo período ou mesma aula.
+4. Busca gulosa: as sessões, em ordem alfabética de professor, ocupam o
+   primeiro bloco livre de conflito.
+5. Manhã (A, B, C) primeiro; a tarde (D, E, F) só é usada se a sessão não
+   couber de manhã. Dentro do turno, escolhe o bloco menos ocupado e evita
+   duas sessões da mesma aula no mesmo dia.
 
-Este módulo NÃO acessa o banco: recebe listas de dicionários e devolve listas
-de dicionários, o que facilita os testes.
+Não acessa o banco: recebe e devolve listas de dicionários.
 """
 from collections import defaultdict
 
