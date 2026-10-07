@@ -1,42 +1,32 @@
-# Back-end: geração da grade horária
+Projeto De Teoria dos Grafos - Equipe 02
+# Modelagem do Grafo para Montagem da Grade Horária
 
-Monta a grade de horários dos professores **sem choques**, com grafos e busca gulosa. Com os dados de exemplo (48 aulas, 10 períodos), gera tudo de uma vez com 0 choques.
+## 1. Mapeamento do Banco de Dados para o Grafo
+Para a resolução do problema de agendamento de horários (Perfil Curricular e Pleno), o problema foi mapeado para um **Grafo de Conflitos para Coloração**:
 
-## Como funciona
+* **Vértices (Nós - $V$):** Representam os registros da tabela `ALO_ALOCACAO`.
+  * Cada nó é uma oferta de aula que necessita de um slot de horário.
+  * **Atributos do Nó:** `PRO_ID` (Professor) e `DI_PERIODO` (Período/Perfil Curricular vindo de `DI_DISCIPLINA`).
 
-- Cada aula vira **sessões** de 2 horários (um bloco).
-- O **grafo** liga as sessões que não podem ser juntas: mesmo professor ou mesmo período.
-- A **busca gulosa** coloca cada sessão (em ordem alfabética do professor) no primeiro bloco livre de conflito.
-- A semana tem 6 blocos por dia: A (07:10), B (08:50), C (10:30), D (12:10), E (13:50) e F (15:30), de 2 horários cada.
-- **Manhã primeiro** (A, B, C): a tarde só entra se não couber.
-- Duração = carga horária ÷ 15: 4 horários viram 2 sessões em dias diferentes, e 3 horários viram uma sessão contínua (ex.: 10:30 às 13:00).
+* **Arestas (Incompatibilidades/Conflitos - $E$):**
+  Uma aresta não direcionada conecta dois nós de alocação $A$ e $B$ quando existe restrição de horário:
+  1. **Conflito de Professor:** $A.\text{PRO\_ID} == B.\text{PRO\_ID}$ (Um professor não ministra duas aulas no mesmo horário).
+  2. **Conflito de Perfil Pleno / Curricular:** $A.\text{DI\_PERIODO} == B.\text{DI\_PERIODO}$ (Disciplinas do mesmo período não podem ter choque de horário para o aluno pleno).
 
-## Arquivos
+* **Cores (Slots de Horário):**
+  * As cores disponíveis no algoritmo correspondem aos registros da tabela `HO_HORARIO`.
+  * **Objetivo:** Aplicar o algoritmo de coloração de grafos (ex: DSATUR) de modo que dois nós conectados por uma aresta recebam cores (horários) distintas.
+  * O resultado final é persistido na tabela `GRA_GRADE_HORARIA`.
 
-- `graphs/graph.py`: monta o grafo de conflitos.
-- `graphs/agendamento.py`: divide as aulas, faz a busca gulosa e valida os choques.
-- `demo_grade.py`: mostra a grade na tela, sem banco de dados.
-- `testes/test_agendamento.py`: 18 testes.
+## Algoritmo e Heurística Utilizada
+Para a resolução do problema de coloração do grafo, foi implementado o Algoritmo Guloso (Greedy Coloring) utilizando a heurística DSATUR (Degree of Saturation), disponibilizado pela biblioteca NetworkX (nx.coloring.greedy_color(G, strategy="DSATUR")).
 
-## Como rodar
+Funcionamento do algoritmo:
+* Saturação Dinâmica: A cada passo, o DSATUR calcula a quantidade de cores (horários) distintas já atribuídas aos nós vizinhos de cada vértice não colorido.
+* Priorização por Restrição: O algoritmo prioriza a alocação dos nós com maior grau de saturação — ou seja, resolve primeiro as aulas que possuem mais restrições acumuladas e estão mais "encurraladas".
+* Atribuição Gulosa: Para a aula selecionada, é atribuído o menor slot de horário (cor) disponível que não cause choques com os seus vizinhos.
 
-Precisa de Python 3.10 ou mais novo.
-
-```powershell
-git clone -b gabriel-agendamento https://github.com/Gabriel-Esteves-0404/teoria-dos-grafos-eq2.git
-cd teoria-dos-grafos-eq2
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install networkx pandas openpyxl matplotlib pytest
-cd back-end
-python demo_grade.py
-python -m pytest testes -v
-```
-
-Para outro período, `python demo_grade.py 7`. Para desenhar o grafo, `--grafo`. Não precisa de `.env`.
-
-## Falta
-
-- Gravar a grade no Supabase (`GRA_GRADE_HORARIA`) e entregar o JSON para o front.
-- Coluna de carga horária na tabela de disciplinas (hoje as durações vêm da planilha de exemplo).
-- A confirmar com a professora: salas (hoje chega a 7 aulas ao mesmo tempo), uso do bloco D (atravessa o almoço) e o "perfil curricular e pleno".
+Justificativa Técnica:
+* Complexidade e Desempenho: O problema de coloração de grafos é NP-Difícil (NP-Hard). A abordagem gulosa com DSATUR encontra uma solução viável em milissegundos, evitando o custo computacional impraticável da busca exata.
+* Otimização de Horários: O DSATUR é uma das melhores heurísticas da literatura para aproximar o Número Cromático $\chi(G)$ do grafo, minimizando a quantidade total de slots de tempo necessários para alocar todas as matérias.
+* Garantia de Zero Conflitos: A validação estrita das arestas antes da atribuição de cada cor garante matematicamente uma grade horária 100% livre de choques para professores e alunos.
