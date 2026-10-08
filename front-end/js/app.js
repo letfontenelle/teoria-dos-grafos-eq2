@@ -377,7 +377,7 @@
       return el("button", {
         class: p === periodo ? "ativo" : null, type: "button", title: `${p}º período: ${feitas} de ${doPeriodo.length} sessões coloridas`,
         onclick: () => { $("#sel-periodo-passos").value = p; renderPassos(); },
-      }, `${p}º · ${feitas}/${doPeriodo.length}`, el("span", { class: "barra-prog" }, el("i", { style: `width:${doPeriodo.length ? (100 * feitas / doPeriodo.length) : 0}%` })));
+      }, `${p}º · ${feitas}/${doPeriodo.length}`, el("span", { class: "barra-prog" }, el("i", { style: `transform:scaleX(${doPeriodo.length ? feitas / doPeriodo.length : 0})` })));
     }));
 
     const faixa = $("#faixa-passos");

@@ -197,7 +197,7 @@ input { width: 120px; }
 }
 .progresso-periodos button.ativo { border-color: var(--cor-texto-primario); color: var(--cor-texto-primario); }
 .progresso-periodos .barra-prog { height: 4px; border-radius: 2px; background: var(--cor-borda-padrao); overflow: hidden; }
-.progresso-periodos .barra-prog i { display: block; height: 100%; background: var(--cor-estado-sucesso); transition: width .2s; }
+.progresso-periodos .barra-prog i { display: block; width: 100%; height: 100%; background: var(--cor-estado-sucesso); transform-origin: left center; transition: transform .2s; }
 
 /* ---------------------------------------------------------------- métricas -- */
 .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
