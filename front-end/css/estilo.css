@@ -201,6 +201,7 @@ input { width: 120px; }
 
 /* ---------------------------------------------------------------- métricas -- */
 .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+#metricas, #grafo-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .metrica { background: var(--cor-superficie-sutil); border: 1px solid var(--cor-borda-padrao); border-radius: var(--raio-pequeno); padding: 10px 12px; }
 .metrica b { display: block; font-size: 22px; font-family: var(--fonte-titulo); line-height: 1.1; }
 .metrica span { font-size: 12px; color: var(--cor-texto-suave); }
