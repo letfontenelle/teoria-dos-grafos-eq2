@@ -1,4 +1,3 @@
-Projeto De Teoria dos Grafos - Equipe 02
 # Modelagem do Grafo para Montagem da Grade Horária
 
 ## 1. Mapeamento do Banco de Dados para o Grafo
