@@ -8,7 +8,7 @@ from graphs.graph import construir_grafo_conflitos, resolver_coloracao_horarios
 
 # monta uma alocacao igual a que vem do supabase
 def aula(id, professor, periodo):
-    return {"ALO_ID": id, "PRO_ID": professor, "DI_DISCIPLINA": {"DI_PERIODO": periodo}}
+    return {"ALO_ID": id, "PRO_ID": professor, "DIS_DISCIPLINA": {"DIS_PERIODO": periodo}}
 
 
 # testes do grafo
@@ -54,8 +54,8 @@ def test_professor_none():
 
 def test_disciplina_none():
     alocacoes = [
-        {"ALO_ID": 1, "PRO_ID": 10, "DI_DISCIPLINA": None},
-        {"ALO_ID": 2, "PRO_ID": 20, "DI_DISCIPLINA": None},
+        {"ALO_ID": 1, "PRO_ID": 10, "DIS_DISCIPLINA": None},
+        {"ALO_ID": 2, "PRO_ID": 20, "DIS_DISCIPLINA": None},
     ]
     G = construir_grafo_conflitos(alocacoes)
     assert G.number_of_nodes() == 2

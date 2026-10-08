@@ -9,8 +9,8 @@ Agendamento: monta a grade de horários com busca gulosa.
      D 12:10-13:50 | E 13:50-15:30 | F 15:30-17:10
 3. O grafo de conflitos (graph.py) liga sessões que não podem ocorrer juntas:
    mesmo professor, mesmo período ou mesma aula.
-4. Busca gulosa: as sessões, em ordem alfabética de professor, ocupam o
-   primeiro bloco livre de conflito.
+4. Busca gulosa: as sessões, em ordem alfabética de professor (ou pela
+   saturação, com ordem="dsatur"), ocupam o primeiro bloco livre de conflito.
 5. Manhã (A, B, C) primeiro; a tarde (D, E, F) só é usada se a sessão não
    couber de manhã. Dentro do turno, escolhe o bloco menos ocupado e evita
    duas sessões da mesma aula no mesmo dia.
@@ -39,16 +39,16 @@ def duracao_pela_carga_horaria(carga_horaria):
 # ---------------------------------------------------------------- blocos ----
 def montar_blocos(horarios, tamanho=SLOTS_POR_BLOCO):
     """
-    Agrupa os horários de HO_HORARIO em blocos de `tamanho` horários seguidos
+    Agrupa os horários de HOR_HORARIO em blocos de `tamanho` horários seguidos
     no mesmo dia (A, B, C...).
 
-    horarios: lista de dicts com HO_ID e HO_DIA (os HO_ID devem seguir a ordem
+    horarios: lista de dicts com HOR_ID e HOR_DIA (os HOR_ID devem seguir a ordem
               cronológica dentro do dia).
     Retorna: lista de dicts {id, dia, letra, pos, ordem_dia, ho_ids}.
     """
     por_dia = defaultdict(list)
-    for h in sorted(horarios, key=lambda h: h["HO_ID"]):
-        por_dia[h["HO_DIA"]].append(h["HO_ID"])
+    for h in sorted(horarios, key=lambda h: h["HOR_ID"]):
+        por_dia[h["HOR_DIA"]].append(h["HOR_ID"])
 
     blocos = []
     for ordem_dia, (dia, ids) in enumerate(por_dia.items()):
@@ -98,7 +98,7 @@ def expandir_sessoes(alocacoes, duracoes=None, duracao_padrao=DURACAO_PADRAO):
 
     Quantos horários a aula tem por semana, em ordem de prioridade:
       1. `duracoes` ({ALO_ID: nº de horários}), se a aula estiver lá;
-      2. a carga horária da disciplina (DI_DISCIPLINA.DI_CARGA_HORARIA) / 15;
+      2. a carga horária da disciplina (DIS_DISCIPLINA.DIS_CARGA_HORARIA) / 15;
       3. `duracao_padrao`.
     Cada sessão ganha ALO_ID = (alo_id_original, n) e o campo SLOTS.
     """
@@ -106,8 +106,8 @@ def expandir_sessoes(alocacoes, duracoes=None, duracao_padrao=DURACAO_PADRAO):
     sessoes = []
     for alo in alocacoes:
         alo_id = alo["ALO_ID"]
-        disc = alo.get("DI_DISCIPLINA")
-        carga = disc.get("DI_CARGA_HORARIA") if isinstance(disc, dict) else None
+        disc = alo.get("DIS_DISCIPLINA")
+        carga = disc.get("DIS_CARGA_HORARIA") if isinstance(disc, dict) else None
         if duracoes.get(alo_id):
             duracao = duracoes[alo_id]
         elif carga:
@@ -130,8 +130,11 @@ def _nome_professor(s):
 
 
 def _nome_disciplina(s):
-    disc = s.get("DI_DISCIPLINA") or {}
-    return s.get("DI_NOME") or (disc.get("DI_DESCRICAO") if isinstance(disc, dict) else "") or ""
+    disc = s.get("DIS_DISCIPLINA") or {}
+    return s.get("DIS_NOME") or (disc.get("DIS_DESCRICAO") if isinstance(disc, dict) else "") or ""
+
+
+ORDENS = ("alfabetica", "mais_conflitos", "dsatur")
 
 
 def _ordenar_sessoes(sessoes, G, ordem):
@@ -152,6 +155,10 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
     Uma sessão de 3 horários ocupa DOIS blocos seguidos do mesmo dia (ex.: C e
     D: 10:30 às 13:00); as demais ocupam um bloco.
 
+    ordem         : "alfabetica" (professor, depois disciplina), "mais_conflitos"
+                    (maior grau primeiro) ou "dsatur" (a cada passo, a sessão com
+                    mais blocos já bloqueados pelos vizinhos colocados, ou seja,
+                    maior grau de saturação; empate: maior grau, depois nome).
     espalhar=True : escolhe a posição livre menos ocupada (evitando repetir o
                     dia de uma sessão da mesma aula).
     espalhar=False: escolhe a primeira posição livre (Segunda A, B, C...).
@@ -181,16 +188,30 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
                 ops.append(tuple(seq))
         return ops
 
+    if ordem not in ORDENS:
+        raise ValueError(f"ordem desconhecida: {ordem!r} (use {', '.join(ORDENS)})")
+
     colocacao = {}
     carga_bloco = defaultdict(int)
     carga_dia = defaultdict(int)
     mesma_aula_no_dia = defaultdict(int)
 
-    for s in _ordenar_sessoes(sessoes, G, ordem):
-        no = s["ALO_ID"]
+    def bloqueados(no):
         ocupados = set()
         for v in G[no]:
             ocupados.update(colocacao.get(v, ()))
+        return ocupados
+
+    pendentes = _ordenar_sessoes(sessoes, G, "alfabetica" if ordem == "dsatur" else ordem)
+    while pendentes:
+        if ordem == "dsatur":
+            # Saturação: quantos blocos (cores) os vizinhos já colocados ocupam.
+            s = min(pendentes, key=lambda x: (-len(bloqueados(x["ALO_ID"])), -G.degree(x["ALO_ID"])))
+            pendentes.remove(s)
+        else:
+            s = pendentes.pop(0)
+        no = s["ALO_ID"]
+        ocupados = bloqueados(no)
         livres = [op for op in posicoes(s.get("SPAN", 1))
                   if not any(b["id"] in ocupados for b in op)]
         if not livres:
@@ -220,17 +241,25 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
     return colocacao
 
 
-def gerar_linhas_grade(sessoes, colocacao, blocos, semestre):
-    """Gera as linhas (GRA_SEMESTRE, ALO_ID, HO_ID) da GRA_GRADE_HORARIA."""
+def horarios_por_sessao(sessoes, colocacao, blocos):
+    """{ALO_ID da sessão: [HOR_ID, ...]} com as faixas que cada sessão colocada ocupa."""
     por_id = {b["id"]: b for b in blocos}
-    linhas = []
+    saida = {}
     for s in sessoes:
+        if s["ALO_ID"] not in colocacao:
+            continue
         horarios_da_sessao = []
         for bloco_id in colocacao[s["ALO_ID"]]:
             horarios_da_sessao += por_id[bloco_id]["ho_ids"]
-        for ho_id in horarios_da_sessao[: s["SLOTS"]]:
-            linhas.append({"GRA_SEMESTRE": semestre, "ALO_ID": s["ALO_ID"][0], "HO_ID": ho_id})
-    return linhas
+        saida[s["ALO_ID"]] = horarios_da_sessao[: s["SLOTS"]]
+    return saida
+
+
+def gerar_linhas_grade(sessoes, colocacao, blocos, semestre):
+    """Gera as linhas (GRA_SEMESTRE, ALO_ID, HOR_ID) da GRA_GRADE_HORARIA."""
+    return [{"GRA_SEMESTRE": semestre, "ALO_ID": sessao[0], "HOR_ID": ho_id}
+            for sessao, ho_ids in horarios_por_sessao(sessoes, colocacao, blocos).items()
+            for ho_id in ho_ids]
 
 
 # ------------------------------------------------------------ validação ----
@@ -239,18 +268,22 @@ def validar_grade(linhas, alocacoes):
     info = {a["ALO_ID"]: a for a in alocacoes}
 
     def periodo(alo_id):
-        disc = info[alo_id].get("DI_DISCIPLINA")
-        return disc.get("DI_PERIODO") if isinstance(disc, dict) else None
+        disc = info[alo_id].get("DIS_DISCIPLINA")
+        return disc.get("DIS_PERIODO") if isinstance(disc, dict) else None
+
+    def eletiva(alo_id):
+        disc = info[alo_id].get("DIS_DISCIPLINA")
+        return bool(disc.get("DIS_ELETIVA")) if isinstance(disc, dict) else False
 
     por_slot = defaultdict(set)
     vistos = set()
     violacoes = []
     for l in linhas:
-        chave = (l["ALO_ID"], l["HO_ID"])
+        chave = (l["ALO_ID"], l["HOR_ID"])
         if chave in vistos:
-            violacoes.append(f"Linha repetida: aula {l['ALO_ID']} no horário {l['HO_ID']}")
+            violacoes.append(f"Linha repetida: aula {l['ALO_ID']} no horário {l['HOR_ID']}")
         vistos.add(chave)
-        por_slot[l["HO_ID"]].add(l["ALO_ID"])
+        por_slot[l["HOR_ID"]].add(l["ALO_ID"])
 
     for ho_id, aulas in sorted(por_slot.items()):
         aulas = sorted(aulas)
@@ -261,12 +294,28 @@ def validar_grade(linhas, alocacoes):
                 if pa is not None and pa == pb:
                     violacoes.append(f"Horário {ho_id}: aulas {a} e {b} têm o mesmo professor ({pa})")
                 da, db = periodo(a), periodo(b)
-                if da is not None and da == db:
+                if da is not None and da == db and not (eletiva(a) and eletiva(b)):
                     violacoes.append(f"Horário {ho_id}: aulas {a} e {b} são do mesmo período ({da})")
     return violacoes
 
 
 # ---------------------------------------------------------- orquestração ----
+def construir_grafo_sessoes(sessoes):
+    """Grafo de conflitos das sessões (vértice = (ALO_ID, n))."""
+    G = construir_grafo_conflitos(sessoes)
+
+    # Sessões da mesma aula nunca podem coincidir (garantia extra, caso a aula
+    # não tenha professor nem período preenchidos).
+    por_aula = defaultdict(list)
+    for s in sessoes:
+        por_aula[s["ALO_ID"][0]].append(s["ALO_ID"])
+    for ids in por_aula.values():
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                G.add_edge(ids[i], ids[j], motivo="mesma_aula")
+    return G
+
+
 def gerar_grade(alocacoes, horarios, semestre, duracoes=None, duracao_padrao=DURACAO_PADRAO,
                 ordem="alfabetica", espalhar=True, letras_permitidas=LETRAS,
                 turnos=TURNOS_PADRAO):
@@ -281,17 +330,7 @@ def gerar_grade(alocacoes, horarios, semestre, duracoes=None, duracao_padrao=DUR
     """
     blocos = [b for b in montar_blocos(horarios) if b["letra"] in letras_permitidas]
     sessoes = expandir_sessoes(alocacoes, duracoes, duracao_padrao)
-    G = construir_grafo_conflitos(sessoes)
-
-    # Sessões da mesma aula nunca podem coincidir (garantia extra, caso a aula
-    # não tenha professor nem período preenchidos).
-    por_aula = defaultdict(list)
-    for s in sessoes:
-        por_aula[s["ALO_ID"][0]].append(s["ALO_ID"])
-    for ids in por_aula.values():
-        for i in range(len(ids)):
-            for j in range(i + 1, len(ids)):
-                G.add_edge(ids[i], ids[j], motivo="mesma_aula")
+    G = construir_grafo_sessoes(sessoes)
 
     colocacao = colocar_sessoes(G, sessoes, blocos, ordem=ordem, espalhar=espalhar, turnos=turnos)
     linhas = gerar_linhas_grade(sessoes, colocacao, blocos, semestre)
@@ -314,7 +353,7 @@ def grafo_para_dict(G, colocacao, blocos):
                 "id": f"{n[0]}-{n[1]}",
                 "alo_id": n[0],
                 "pro_id": d.get("pro_id"),
-                "periodo": d.get("di_periodo"),
+                "periodo": d.get("dis_periodo"),
                 "dia": por_id[colocacao[n][0]]["dia"],
                 "bloco": "+".join(por_id[i]["letra"] for i in colocacao[n]),
             }

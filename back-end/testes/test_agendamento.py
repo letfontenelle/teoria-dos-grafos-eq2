@@ -19,19 +19,19 @@ DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
 
 
 def horarios_semana():
-    """60 horários: 5 dias x 12 faixas, HO_ID de 1 a 60."""
-    return [{"HO_ID": d * 12 + f + 1, "HO_DIA": dia} for d, dia in enumerate(DIAS) for f in range(12)]
+    """60 horários: 5 dias x 12 faixas, HOR_ID de 1 a 60."""
+    return [{"HOR_ID": d * 12 + f + 1, "HOR_DIA": dia} for d, dia in enumerate(DIAS) for f in range(12)]
 
 
 def alo(alo_id, pro_id, periodo, nome=None):
-    a = {"ALO_ID": alo_id, "PRO_ID": pro_id, "DI_DISCIPLINA": {"DI_PERIODO": periodo}}
+    a = {"ALO_ID": alo_id, "PRO_ID": pro_id, "DIS_DISCIPLINA": {"DIS_PERIODO": periodo}}
     if nome:
         a["PRO_NOME"] = nome
     return a
 
 
 def slots(r, alo_id):
-    return {l["HO_ID"] for l in r["linhas"] if l["ALO_ID"] == alo_id}
+    return {l["HOR_ID"] for l in r["linhas"] if l["ALO_ID"] == alo_id}
 
 
 def dias_da_aula(r, alo_id):
@@ -86,7 +86,7 @@ def test_espalhar_coloca_aulas_sem_conflito_em_blocos_diferentes():
 
 def test_sem_espalhar_comeca_na_segunda_bloco_a():
     r = gerar_grade([alo(1, 1, 1), alo(2, 2, 2)], horarios_semana(), "2026.2", espalhar=False)
-    assert 1 in slots(r, 1) and 2 in slots(r, 1)  # Segunda A = HO_ID 1 e 2
+    assert 1 in slots(r, 1) and 2 in slots(r, 1)  # Segunda A = HOR_ID 1 e 2
 
 
 def test_ordem_alfabetica_por_professor():
@@ -99,7 +99,7 @@ def test_letras_permitidas_so_de_manha():
     alocacoes = [alo(i, i, i) for i in range(1, 25)]
     r = gerar_grade(alocacoes, horarios_semana(), "2026.2", letras_permitidas="ABC")
     assert {b["letra"] for b in r["blocos"]} == {"A", "B", "C"}
-    assert all(l["HO_ID"] % 12 in (1, 2, 3, 4, 5, 6) for l in r["linhas"])  # primeiras 6 faixas do dia
+    assert all(l["HOR_ID"] % 12 in (1, 2, 3, 4, 5, 6) for l in r["linhas"])  # primeiras 6 faixas do dia
 
 
 def test_erro_claro_quando_faltam_blocos():
@@ -110,8 +110,8 @@ def test_erro_claro_quando_faltam_blocos():
 
 def test_validador_detecta_choque_de_professor():
     alocacoes = [alo(1, 10, 1), alo(2, 10, 2)]
-    linhas = [{"GRA_SEMESTRE": "2026.2", "ALO_ID": 1, "HO_ID": 1},
-              {"GRA_SEMESTRE": "2026.2", "ALO_ID": 2, "HO_ID": 1}]
+    linhas = [{"GRA_SEMESTRE": "2026.2", "ALO_ID": 1, "HOR_ID": 1},
+              {"GRA_SEMESTRE": "2026.2", "ALO_ID": 2, "HOR_ID": 1}]
     assert any("mesmo professor" in v for v in validar_grade(linhas, alocacoes))
 
 
@@ -120,8 +120,8 @@ def test_carga_horaria_define_aulas_por_semana():
 
 
 def test_disciplina_de_60h_tem_4_horarios_e_de_30h_tem_2():
-    a60 = {"ALO_ID": 1, "PRO_ID": 1, "DI_DISCIPLINA": {"DI_PERIODO": 1, "DI_CARGA_HORARIA": 60}}
-    a30 = {"ALO_ID": 2, "PRO_ID": 2, "DI_DISCIPLINA": {"DI_PERIODO": 2, "DI_CARGA_HORARIA": 30}}
+    a60 = {"ALO_ID": 1, "PRO_ID": 1, "DIS_DISCIPLINA": {"DIS_PERIODO": 1, "DIS_CARGA_HORARIA": 60}}
+    a30 = {"ALO_ID": 2, "PRO_ID": 2, "DIS_DISCIPLINA": {"DIS_PERIODO": 2, "DIS_CARGA_HORARIA": 30}}
     r = gerar_grade([a60, a30], horarios_semana(), "2026.2")
     assert len(slots(r, 1)) == 4 and len(slots(r, 2)) == 2
 
