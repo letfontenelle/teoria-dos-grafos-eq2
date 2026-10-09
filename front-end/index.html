@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grade de Horários · Equipe 02</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css?v=3">
+</head>
+<body>
+  <div class="pagina">
+    <header class="cabecalho">
+      <div>
+        <h1>Grade de Horários</h1>
+        <p class="subtitulo">Engenharia de Computação · POLI/UPE · coloração de grafos · Equipe 02</p>
+      </div>
+      <div class="origem">
+        <span class="rotulo">Grade em memória</span>
+        <span id="origem-texto" class="origem-texto">Carregando…</span>
+        <span id="origem-editada" class="tag tag-aviso" hidden>editada, não salva</span>
+      </div>
+    </header>
+
+    <nav class="abas" role="tablist">
+      <button class="aba ativa" role="tab" data-aba="grade" aria-selected="true">Grade</button>
+      <button class="aba" role="tab" data-aba="gerar" aria-selected="false">Gerar grade</button>
+      <button class="aba" role="tab" data-aba="grafo" aria-selected="false">Grafo de conflitos</button>
+      <button class="aba" role="tab" data-aba="dados" aria-selected="false">Dados e carga</button>
+    </nav>
+
+    <!-- =============================================================== GRADE -->
+    <section id="aba-grade" class="cartao painel-aba" role="tabpanel">
+      <div class="barra">
+        <div class="filtros">
+          <div class="segmentado" role="group" aria-label="Visão">
+            <button data-visao="periodo" class="ativo">Por período</button>
+            <button data-visao="professor">Por professor</button>
+          </div>
+          <label class="campo"><span>Período</span><select id="sel-periodo"></select></label>
+          <label class="campo" hidden><span>Professor</span><select id="sel-professor"></select></label>
+        </div>
+        <div id="legenda" class="legenda"></div>
+      </div>
+      <div id="faixa-status" class="faixa-status"></div>
+      <div id="grade" class="grade"></div>
+      <p class="dica">Clique numa aula para ver os detalhes ou arraste para outra faixa: no grafo, o vértice troca de cor e os conflitos são recalculados.</p>
+    </section>
+
+    <!-- =============================================================== GERAR -->
+    <section id="aba-gerar" class="painel-aba" role="tabpanel" hidden>
+      <div class="colunas">
+        <div class="cartao pilha">
+          <h2>Gerar grade viável</h2>
+          <p class="texto">Cada sessão de aula (bloco de 2 faixas, ou 3 seguidas) é um <b>vértice</b>. Há <b>aresta</b> quando duas sessões não podem acontecer juntas: mesmo professor, mesmo período (aluno pleno) ou mesma disciplina. Cada <b>cor</b> é um bloco de horário; colorir sem repetir cor entre vizinhos dá uma grade sem choques.</p>
+          <label class="campo campo-largo"><span>Algoritmo</span><select id="sel-ordem"></select></label>
+          <button id="btn-gerar" class="botao botao-primario">Gerar grade</button>
+          <div id="metricas" class="metricas"></div>
+          <div id="otimalidade" class="nota"></div>
+        </div>
+        <div class="cartao pilha">
+          <h2>Salvar no banco</h2>
+          <p class="texto">Grava a grade em memória (gerada ou editada) na tabela <code>GRA_GRADE_HORARIA</code>.</p>
+          <div class="linha">
+            <label class="campo"><span>Semestre</span><input id="inp-semestre" value="2027.1" maxlength="20"></label>
+            <button id="btn-salvar" class="botao">Salvar</button>
+          </div>
+          <div id="msg-salvar" class="nota" hidden></div>
+          <h3>Grades gravadas</h3>
+          <ul id="lista-semestres" class="lista-semestres"></ul>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="barra">
+          <div class="filtros">
+            <label class="campo"><span>Período</span><select id="sel-periodo-passos"></select></label>
+            <div class="passos-controles">
+              <button id="btn-passo-inicio" class="botao botao-icone" title="Sem cor">⏮</button>
+              <button id="btn-passo-menos" class="botao botao-icone" title="Passo anterior">‹</button>
+              <button id="btn-tocar" class="botao botao-icone" title="Animar a coloração">▶</button>
+              <button id="btn-passo-mais" class="botao botao-icone" title="Próximo passo">›</button>
+              <button id="btn-passo-fim" class="botao botao-icone" title="Tudo colorido">⏭</button>
+            </div>
+          </div>
+          <div class="passo-texto"><span id="passo-rotulo"></span></div>
+        </div>
+        <input id="rng-passo" type="range" min="0" max="0" value="0" class="passo-slider" aria-label="Passo da coloração">
+        <div id="progresso-periodos" class="progresso-periodos" aria-label="Vértices coloridos por período"></div>
+        <div id="faixa-passos" class="faixa-status"></div>
+        <div id="grade-passos" class="grade"></div>
+      </div>
+    </section>
+
+    <!-- =============================================================== GRAFO -->
+    <section id="aba-grafo" class="cartao painel-aba" role="tabpanel" hidden>
+      <div class="barra">
+        <div class="filtros">
+          <div class="segmentado" role="group" aria-label="Recorte">
+            <button data-recorte="periodo" class="ativo">Por período</button>
+            <button data-recorte="professor">Por professor</button>
+          </div>
+          <label class="campo"><span>Período</span><select id="sel-periodo-grafo"></select></label>
+          <label class="campo" hidden><span>Professor</span><select id="sel-professor-grafo"></select></label>
+        </div>
+        <a class="botao" href="/api/grafo" download="grafo_conflitos.json">Exportar JSON</a>
+      </div>
+      <div class="colunas colunas-grafo">
+        <svg id="svg-grafo" class="svg-grafo" viewBox="0 0 640 520" role="img" aria-label="Grafo de conflitos"></svg>
+        <div class="pilha">
+          <div id="grafo-resumo" class="metricas"></div>
+          <div class="legenda-arestas">
+            <div><i class="aresta-periodo"></i> mesmo período (aluno pleno)</div>
+            <div><i class="aresta-professor"></i> mesmo professor</div>
+            <div><i class="aresta-aula"></i> mesma disciplina</div>
+          </div>
+          <p class="texto">Vértices da mesma cor ocupam o mesmo bloco de horário, por isso nunca podem estar ligados por uma aresta. Vizinhos de fora do recorte aparecem em cinza claro: são as restrições que vêm de outros períodos ou professores.</p>
+          <div id="grafo-detalhe" class="nota"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== DADOS -->
+    <section id="aba-dados" class="painel-aba" role="tabpanel" hidden>
+      <div class="cartao">
+        <h2>Carga de dados</h2>
+        <p class="texto">Fontes: <b>GradeProfessor.pdf</b> (grade atual dos professores, horários no padrão dia + faixa) e <b>perfil curricular CP21</b> (período e carga horária), materiais da Iteração 02.</p>
+        <div id="carga-totais" class="metricas"></div>
+        <div id="carga-relatorio"></div>
+      </div>
+      <div class="cartao">
+        <h2>Disciplinas ofertadas</h2>
+        <div class="tabela-rolagem"><table id="tabela-disciplinas" class="tabela"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Painel de detalhe da aula -->
+  <aside id="detalhe" class="detalhe" hidden aria-live="polite">
+    <div class="detalhe-cabecalho">
+      <span id="detalhe-estado" class="tag"></span>
+      <button id="detalhe-fechar" class="botao botao-icone" aria-label="Fechar">✕</button>
+    </div>
+    <div id="detalhe-corpo"></div>
+  </aside>
+
+  <div id="aviso" class="aviso" role="status" hidden></div>
+  <script src="js/app.js?v=3"></script>
+</body>
+</html>
