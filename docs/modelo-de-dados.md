@@ -16,7 +16,7 @@ card **Modelo de Dados** do Trello e na devolutiva de 20/09.
 Atributos acrescentados para atender a Iteração 04 (US-01) e a Iteração 06 (US-03):
 
 - `DIS_CARGA_HORARIA`: cada disciplina recebe carga / 15 faixas por semana.
-- `DIS_ELETIVA`: eletivas do mesmo período podem coincidir entre si (ver `back-end/graphs/MODELAGEM.md`).
+- `DIS_ELETIVA`: identifica as disciplinas eletivas. Na grade gerada, elas não coincidem com outras disciplinas do mesmo período (ver `back-end/graphs/MODELAGEM.md`).
 - `HOR_DIA`/`HOR_FAIXA`: o horário segue o padrão da POLI usado no GradeProfessor.pdf (dia 2 a 6 + faixa A a L; ex.: `2C` = segunda, 08:50).
 
 ## 1. Modelo conceitual

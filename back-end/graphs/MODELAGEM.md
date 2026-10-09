@@ -12,15 +12,15 @@ O problema de agendamento (perfil curricular e aluno pleno) é mapeado para um *
 
 * **Arestas ($E$):** dois vértices $A$ e $B$ são ligados quando não podem ocupar o mesmo horário:
   1. **Conflito de professor:** $A.\text{PRO\_ID} = B.\text{PRO\_ID}$. Um professor não ministra duas aulas ao mesmo tempo.
-  2. **Conflito de perfil pleno/curricular:** $A.\text{DIS\_PERIODO} = B.\text{DIS\_PERIODO}$, **exceto quando as duas são eletivas**. O aluno blocado precisa conseguir cursar todas as obrigatórias do seu período e qualquer eletiva junto com elas; entre duas eletivas, ele escolhe, então elas podem coincidir.
+  2. **Conflito de perfil pleno/curricular:** $A.\text{DIS\_PERIODO} = B.\text{DIS\_PERIODO}$. A grade não sobrepõe disciplinas do mesmo período, inclusive quando ambas são eletivas.
   3. **Mesma disciplina** (só no grafo de sessões): as sessões da mesma alocação não podem coincidir.
 
 * **Cores:** a cor de um vértice é o horário que ele ocupa. No grafo de sessões, cada cor é um **bloco** de faixas seguidas de `HOR_HORARIO` (ex.: `2C 2D` = segunda, 08:50–10:30). Uma coloração própria (vizinhos com cores diferentes) é uma grade sem choques.
 * **Persistência:** a coloração vira linhas de `GRA_GRADE_HORARIA` (`ALO_ID`, `HOR_ID`, `GRA_SEMESTRE`). O caminho inverso também existe: uma grade salva no banco é lida e transformada de novo em grafo colorido (`GradeEmMemoria.de_linhas`).
 
-### Por que a regra das eletivas
+### Regra para eletivas
 
-Aplicando o modelo à grade **atual** da coordenação (GradeProfessor.pdf, semestre 2026.2), a única fonte de "choque" eram 3 pares de **eletivas** do mesmo período (9º: Computação Natural x Métodos Formais; 10º: Formação de Empreendedores x PDI e Conversão Eletromecânica x Redes Neurais). Nenhuma obrigatória colide com outra do mesmo período, nem com eletiva do mesmo período. Com a regra, a grade real tem **0 conflitos** no modelo, o que valida a modelagem contra a realidade (teste `test_grade_atual_da_coordenacao_nao_tem_conflitos_no_modelo`).
+Embora alunos possam escolher entre eletivas, a grade gerada não as sobrepõe: eletivas do mesmo período recebem uma aresta de conflito como as demais disciplinas do período. A grade histórica da coordenação (2026.2) contém algumas sobreposições de eletivas e, portanto, é reportada como conflitante por essa regra; novas grades geradas evitam esses choques.
 
 ## 2. Algoritmos de coloração (implementados pela equipe)
 
@@ -36,8 +36,8 @@ Na **geração da grade** (`agendamento.py`), a busca gulosa do Gabriel coloca a
 
 | Grafo | Vértices | Arestas | DSATUR | Guloso | Maior clique | Ótimo? |
 |---|---|---|---|---|---|---|
-| Alocações (professor x disciplina) | 48 | 118 | 7 cores | 7 cores | 7 | sim |
-| Sessões (blocos de aula) | 89 | 427 | 13 cores | 14 cores | 13 | DSATUR sim, guloso não |
+| Alocações (professor x disciplina) | 48 | 138 | 7 cores | 7 cores | 7 | sim |
+| Sessões (blocos de aula) | 89 | 507 | 13 cores | 15 cores | 13 | DSATUR sim, guloso não |
 
 * A grade gerada tem **0 choques** de professor ou de período, e cada disciplina recebe exatamente carga / 15 faixas (testes em `testes/test_grade_memoria.py`).
 * Gerar a grade completa leva poucos milissegundos.

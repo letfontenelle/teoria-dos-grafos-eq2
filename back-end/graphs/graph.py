@@ -22,10 +22,8 @@ def construir_grafo_conflitos(alocacoes):
 
     Regras de aresta:
       1. Mesmo professor: um professor não ministra duas aulas no mesmo horário.
-      2. Mesmo período (perfil pleno): o aluno blocado precisa conseguir cursar
-         todas as disciplinas do seu período. A exceção são duas ELETIVAS do
-         mesmo período: o aluno escolhe algumas, então elas podem coincidir
-         entre si (é o que a grade atual da coordenação faz).
+      2. Mesmo período: disciplinas do mesmo período, inclusive eletivas, não
+         podem ocupar o mesmo horário.
     """
     G = nx.Graph()
 
@@ -58,11 +56,10 @@ def construir_grafo_conflitos(alocacoes):
                 attr_a["pro_id"] == attr_b["pro_id"]
             )
 
-            # Regra 2: Conflito de Perfil Pleno / Curricular
+            # Regra 2: Conflito curricular, inclusive entre eletivas.
             mesmo_periodo = (
                 attr_a["dis_periodo"] is not None and
-                attr_a["dis_periodo"] == attr_b["dis_periodo"] and
-                not (attr_a["eletiva"] and attr_b["eletiva"])
+                attr_a["dis_periodo"] == attr_b["dis_periodo"]
             )
 
             if mesmo_professor or mesmo_periodo:
