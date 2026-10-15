@@ -24,10 +24,10 @@ def test_dados_carregados_automaticamente(cliente):
     assert d["semestres"] == [{"semestre": "2026.2", "linhas": 181}]
 
 
-def test_grade_inicial_e_a_grade_atual_do_banco(cliente):
+def test_grade_inicial_reporta_sobreposicoes_historicas_de_eletivas(cliente):
     g = cliente.get("/api/grade").json()
     assert g["origem"] == "Banco: grade 2026.2" and g["situacao"] == "completa"
-    assert g["resumo"]["conflitos"] == 0
+    assert g["resumo"]["conflitos"] == 3
 
 
 def test_gerar_e_ver_por_passos(cliente):

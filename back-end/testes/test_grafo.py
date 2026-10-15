@@ -7,8 +7,9 @@ from graphs.graph import construir_grafo_conflitos, resolver_coloracao_horarios
 
 
 # monta uma alocacao igual a que vem do supabase
-def aula(id, professor, periodo):
-    return {"ALO_ID": id, "PRO_ID": professor, "DIS_DISCIPLINA": {"DIS_PERIODO": periodo}}
+def aula(id, professor, periodo, eletiva=False):
+    return {"ALO_ID": id, "PRO_ID": professor,
+            "DIS_DISCIPLINA": {"DIS_PERIODO": periodo, "DIS_ELETIVA": eletiva}}
 
 
 # testes do grafo
@@ -32,6 +33,12 @@ def test_conflito_professor():
 
 def test_conflito_periodo():
     G = construir_grafo_conflitos([aula(1, 10, 3), aula(2, 20, 3)])
+    assert G.has_edge(1, 2)
+    assert G.edges[1, 2]["motivo"] == "perfil_pleno"
+
+
+def test_conflito_duas_eletivas_do_mesmo_periodo():
+    G = construir_grafo_conflitos([aula(1, 10, 9, eletiva=True), aula(2, 20, 9, eletiva=True)])
     assert G.has_edge(1, 2)
     assert G.edges[1, 2]["motivo"] == "perfil_pleno"
 
