@@ -4,16 +4,20 @@ Item 4 do backlog (Iteração 03). Este documento traz as três visões pedidas
 pela professora (conceitual, lógica e física) já com as correções apontadas no
 card **Modelo de Dados** do Trello e na devolutiva de 20/09.
 
+> As visões conceitual e lógica abaixo são a **proposta** com as correções. O
+> banco em uso continua o da equipe de dados no Supabase (seção 3), com as
+> siglas `DI_` e `HO_`.
+
 ## Correções aplicadas
 
 | Problema apontado | Como ficou |
 |---|---|
-| Faltou anexar a entrega (modelo ou link) | Este documento e o `schema.sql` estão no repositório e linkados no card. |
+| Faltou anexar a entrega (modelo ou link) | Este documento está no repositório e linkado no card. |
 | Nomenclatura dos objetos ruim (exemplo: `PRO_PROFESSOR` com `PRO_ID`, `PRO_NOME`, `PRO_MATRICULA`) | Toda tabela é `SIGLA_ENTIDADE` e toda coluna é `SIGLA_ATRIBUTO`. |
 | Erro conceitual: o modelo deve ter PROFESSOR (ID, NOME, MATRÍCULA), DISCIPLINA (ID, CÓDIGO, DESCRIÇÃO, PERÍODO), ALOCAÇÃO (PROFESSOR x DISCIPLINA) e GRADE HORÁRIA (ID, SEMESTRE, PROFESSOR, DISCIPLINA, HORÁRIO) | São exatamente as entidades do modelo, mais `HOR_HORARIO`, que é a "cor" do grafo. A grade referencia professor e disciplina pela alocação. |
-| Padronizar o nome dos objetos com siglas de **3 letras** | As tabelas antigas `DI_DISCIPLINA` e `HO_HORARIO` (2 letras) viraram `DIS_DISCIPLINA` e `HOR_HORARIO`. |
+| Padronizar o nome dos objetos com siglas de **3 letras** | Proposta: `DI_DISCIPLINA` e `HO_HORARIO` (2 letras) passam a `DIS_DISCIPLINA` e `HOR_HORARIO`. No Supabase ainda estão com 2 letras. |
 
-Atributos acrescentados para atender a Iteração 04 (US-01) e a Iteração 06 (US-03):
+Atributos propostos para atender a Iteração 04 (US-01) e a Iteração 06 (US-03), ainda não criados no Supabase:
 
 - `DIS_CARGA_HORARIA`: cada disciplina recebe carga / 15 faixas por semana.
 - `DIS_ELETIVA`: eletivas do mesmo período podem coincidir entre si (ver `back-end/graphs/MODELAGEM.md`).
@@ -106,27 +110,20 @@ erDiagram
 
 Os `HOR_ID` vão de 1 (segunda, faixa A, 07:10) a 60 (sexta, faixa L, 16:20), na ordem dia e depois faixa.
 
-## 3. Modelo físico
+## 3. Modelo físico (em uso no Supabase)
 
-O DDL está em [`back-end/database/schema.sql`](../back-end/database/schema.sql). O mesmo arquivo cria o banco no **PostgreSQL do Supabase** e no **SQLite local** (usado por padrão enquanto o projeto do Supabase está pausado).
+O banco em uso é o da equipe de dados no Supabase. As tabelas ainda usam as siglas antigas `DI_` e `HO_`; renomear para `DIS_` e `HOR_` e acrescentar carga horária e eletiva fica com a equipe de dados.
 
-Para o Supabase, que ainda tem as tabelas antigas (`DI_`/`HO_`), rode [`migracao_supabase.sql`](../back-end/database/migracao_supabase.sql) e depois `schema.sql` no SQL Editor, e em seguida a carga:
+| Tabela | Colunas | Linhas |
+|---|---|---|
+| `PRO_PROFESSOR` | `PRO_ID`, `PRO_NOME`, `PRO_MATRICULA` | 26 |
+| `DI_DISCIPLINA` | `DI_ID`, `DI_CODIGO`, `DI_DESCRICAO`, `DI_PERIODO` | 47 |
+| `HO_HORARIO` | `HO_ID`, `HO_DIA` (ex.: Segunda), `HO_FAIXA` (ex.: 07:10-08:00), `HO_COR` | 60 |
+| `ALO_ALOCACAO` | `ALO_ID`, `PRO_ID`, `DI_ID` | 48 |
+| `GRA_GRADE_HORARIA` | `GRA_ID`, `GRA_SEMESTRE`, `ALO_ID`, `HO_ID` | 179 (semestre 2026.2) |
 
-```bash
-cd back-end
-python -m database.data_ingestion.data_ingestion --banco supabase
-```
+O grafo lê essas tabelas por [`back-end/graphs/dados.py`](../back-end/graphs/dados.py), que converte `HO_ID` para o padrão dia + faixa (ex.: `2C`) e calcula a carga horária pelas faixas de cada disciplina na grade atual.
 
 ## Carga de dados
 
-A carga (`back-end/database/data_ingestion/data_ingestion.py`) lê as fontes extraídas dos materiais da Iteração 02 e preenche as cinco tabelas:
-
-| Tabela | Linhas | Origem |
-|---|---|---|
-| `PRO_PROFESSOR` | 26 | GradeProfessor.pdf |
-| `DIS_DISCIPLINA` | 48 | GradeProfessor.pdf (código, nome, período, eletiva) + CP21 (carga horária) |
-| `HOR_HORARIO` | 60 | padrão de faixas da POLI (A a L, segunda a sexta) |
-| `ALO_ALOCACAO` | 48 | GradeProfessor.pdf (professor x disciplina) |
-| `GRA_GRADE_HORARIA` | 181 | horários **atuais** do GradeProfessor.pdf, semestre `2026.2` |
-
-O relatório de linhas ignoradas, horários modificados e divergências com o CP21 é gerado em [`back-end/database/data/relatorio_carga.md`](../back-end/database/data/relatorio_carga.md).
+A carga é da equipe de dados: [`back-end/database/data_ingestion/data_ingestion.py`](../back-end/database/data_ingestion/data_ingestion.py) lê a planilha `back-end/database/data/modelo_grade_professor.xlsx` (uma aba por tabela) e grava no Supabase, pulando as tabelas que já têm dados.

@@ -1,7 +1,7 @@
 """
-Demonstração local: gera a grade com os dados da carga (GradeProfessor + CP21,
-em database/data) sem usar banco e mostra o resultado de forma legível.
-NÃO grava nada em lugar nenhum.
+Demonstração local: gera a grade com os dados da planilha da equipe de dados
+(database/data/modelo_grade_professor.xlsx, a mesma carregada no Supabase) sem
+usar o Supabase e mostra o resultado de forma legível. NÃO grava nada em lugar nenhum.
 
 Como rodar, de dentro de back-end:
     python demo_grade.py             -> grade do 5º período, em texto
@@ -9,8 +9,8 @@ Como rodar, de dentro de back-end:
     python demo_grade.py --grafo     -> também desenha o grafo (abre uma janela
                                         e salva grafo_agendamento.png)
     python demo_grade.py --tudo4     -> assume 4 horários para todas as aulas
-                                        (o padrão usa a carga horária / 15:
-                                        2, 3, 4 ou 6)
+                                        (o padrão usa as faixas de cada aula
+                                        na grade atual: 2, 3, 4 ou 6)
     python demo_grade.py --dsatur    -> escolhe a próxima sessão pela saturação
                                         (DSATUR) em vez da ordem alfabética
     python demo_grade.py --manha     -> só usa os blocos A, B e C (nunca a tarde)
@@ -24,19 +24,18 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from database.data_ingestion.data_ingestion import DIAS, montar_tabelas_das_fontes  # noqa: E402
-from database.repositorio import montar_dados  # noqa: E402
 from graphs.agendamento import gerar_grade  # noqa: E402
+from graphs.dados import DIAS, montar_dados, tabelas_da_planilha  # noqa: E402
 
 numeros = [a for a in sys.argv[1:] if a.isdigit()]
 periodo_escolhido = int(numeros[0]) if numeros else 5
 desenhar_grafo = "--grafo" in sys.argv
 
-dados = montar_dados(montar_tabelas_das_fontes()[0])
+dados = montar_dados(tabelas_da_planilha())
 alocacoes = {a["ALO_ID"]: a for a in dados["alocacoes"]}
 hor = {h["HOR_ID"]: h for h in dados["horarios"]}
 
-# Durações (quantos horários cada aula tem por semana): carga horária / 15.
+# Durações (quantos horários cada aula tem por semana): faixas da aula na grade atual.
 duracoes = {a: 4 for a in alocacoes} if "--tudo4" in sys.argv else None
 
 resultado = gerar_grade(

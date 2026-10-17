@@ -237,7 +237,6 @@ input { width: 120px; }
 .tabela td { padding: 7px 10px; border-bottom: 1px solid var(--cor-borda-padrao); vertical-align: top; }
 .tabela tr:hover td { background: var(--cor-superficie-sutil); }
 .tabela .num { text-align: right; font-variant-numeric: tabular-nums; }
-.relatorio-bloco { margin-top: 18px; }
 
 /* ----------------------------------------------------------------- detalhe -- */
 .detalhe {
