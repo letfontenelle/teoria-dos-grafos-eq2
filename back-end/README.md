@@ -5,7 +5,7 @@ Monta a grade de horários dos professores **sem choques**, com grafos e colora�
 ## Como funciona
 
 - Cada aula vira **sessões** de 2 faixas (um bloco); uma aula de 3 faixas vira uma sessão contínua. Número de faixas por semana = carga horária ÷ 15.
-- O **grafo** liga as sessões que não podem ser juntas: mesmo professor, mesmo período (inclusive duas eletivas) ou mesma disciplina.
+- O **grafo** liga as sessões que não podem ser juntas: mesmo professor, mesmo período (exceto duas eletivas) ou mesma disciplina.
 - A **busca gulosa** coloca cada sessão no primeiro bloco livre de conflito. A próxima sessão é escolhida pela ordem alfabética do professor, pelo maior grau ou pelo **DSATUR** (maior saturação primeiro).
 - A semana tem 6 blocos por dia, de 2 faixas cada. Em código interno são A a F; na tela, aparecem no padrão da POLI: AB (07:10), CD (08:50), EF (10:30), GH (12:10), IJ (13:50) e KL (15:30).
 - **Manhã primeiro**: a tarde só entra se não couber.

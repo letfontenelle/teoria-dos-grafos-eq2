@@ -271,6 +271,10 @@ def validar_grade(linhas, alocacoes):
         disc = info[alo_id].get("DIS_DISCIPLINA")
         return disc.get("DIS_PERIODO") if isinstance(disc, dict) else None
 
+    def eletiva(alo_id):
+        disc = info[alo_id].get("DIS_DISCIPLINA")
+        return bool(disc.get("DIS_ELETIVA")) if isinstance(disc, dict) else False
+
     por_slot = defaultdict(set)
     vistos = set()
     violacoes = []
@@ -290,7 +294,7 @@ def validar_grade(linhas, alocacoes):
                 if pa is not None and pa == pb:
                     violacoes.append(f"Horário {ho_id}: aulas {a} e {b} têm o mesmo professor ({pa})")
                 da, db = periodo(a), periodo(b)
-                if da is not None and da == db:
+                if da is not None and da == db and not (eletiva(a) and eletiva(b)):
                     violacoes.append(f"Horário {ho_id}: aulas {a} e {b} são do mesmo período ({da})")
     return violacoes
 
