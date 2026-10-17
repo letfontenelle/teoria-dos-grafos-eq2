@@ -38,7 +38,6 @@
     periodoGrafo: 5,
     professorGrafo: null,
     grafo: null,
-    relatorio: null,
   };
 
   const $ = (sel, raiz) => (raiz || document).querySelector(sel);
@@ -559,27 +558,12 @@
 
   // ------------------------------------------------------------ aba dados --
   async function renderDados() {
-    if (!st.relatorio) st.relatorio = await api("/carga/relatorio");
-    const r = st.relatorio;
+    const d = st.dados;
+    const atual = d.semestres.find(s => s.semestre === "2026.2");
     metricas($("#carga-totais"), [
-      [r.totais.PRO_PROFESSOR, "professores"], [r.totais.DIS_DISCIPLINA, "disciplinas"], [r.totais.HOR_HORARIO, "faixas de horário"],
-      [r.totais.ALO_ALOCACAO, "alocações"], [r.totais.GRA_GRADE_HORARIA, "linhas da grade atual"], [r.linhas_ignoradas.length, "linhas ignoradas"],
+      [d.professores.length, "professores"], [d.disciplinas.length, "disciplinas"], [d.dias.length * d.faixas.length, "faixas de horário"],
+      [d.alocacoes.length, "alocações"], [atual ? atual.linhas : 0, "linhas da grade atual"],
     ]);
-    const tabela = (cab, linhas) => el("div", { class: "tabela-rolagem" }, el("table", { class: "tabela" },
-      el("thead", {}, el("tr", {}, cab.map(c => el("th", {}, c)))),
-      el("tbody", {}, linhas.map(l => el("tr", {}, l.map(c => el("td", {}, String(c))))))));
-    const blocos = [
-      el("div", { class: "relatorio-bloco" }, el("h3", {}, `Linhas ignoradas (${r.linhas_ignoradas.length})`),
-        r.linhas_ignoradas.length
-          ? tabela(["Arquivo", "Linha", "Motivo", "Conteúdo"], r.linhas_ignoradas.map(i => [i.arquivo, i.linha, i.motivo, i.conteudo]))
-          : el("p", { class: "texto" }, "Nenhuma linha ignorada: todas as linhas das fontes eram válidas. Horários fora do padrão dia (2–6) + faixa (A–L) também seriam listados aqui.")),
-      el("div", { class: "relatorio-bloco" }, el("h3", {}, `Disciplinas com horário modificado (${r.horarios_modificados.length}), carregadas com o horário atual`),
-        tabela(["Código", "Disciplina", "Original", "Atual"], r.horarios_modificados.map(m => [m.codigo, titulo(m.disciplina), m.original, m.atual]))),
-      el("div", { class: "relatorio-bloco" }, el("h3", {}, `Divergências entre o CP21 e a oferta (${r.divergencias_cp21.length})`),
-        tabela(["Código", "Disciplina", "Campo", "CP21", "Oferta", "Decisão"], r.divergencias_cp21.map(d => [d.codigo, titulo(d.disciplina), d.campo, d.cp21, d.oferta, d.decisao]))),
-      el("div", { class: "relatorio-bloco" }, el("h3", {}, "Avisos"), el("ul", { class: "texto" }, r.avisos.map(a => el("li", {}, a)))),
-    ];
-    $("#carga-relatorio").replaceChildren(...blocos);
 
     const profsPorDis = new Map();
     const nomePro = new Map(st.dados.professores.map(p => [p.PRO_ID, p.PRO_NOME]));
@@ -588,11 +572,11 @@
     }
     const disc = [...st.dados.disciplinas].sort((a, b) => a.DIS_PERIODO - b.DIS_PERIODO || a.DIS_CODIGO.localeCompare(b.DIS_CODIGO));
     $("#tabela-disciplinas").replaceChildren(
-      el("thead", {}, el("tr", {}, ["Código", "Disciplina", "Período", "Carga", "Faixas/semana", "Tipo", "Professor"].map(c => el("th", {}, c)))),
+      el("thead", {}, el("tr", {}, ["Código", "Disciplina", "Período", "Carga", "Faixas/semana", "Professor"].map(c => el("th", {}, c)))),
       el("tbody", {}, disc.map(d => el("tr", {},
         el("td", {}, d.DIS_CODIGO), el("td", {}, titulo(d.DIS_DESCRICAO)), el("td", { class: "num" }, `${d.DIS_PERIODO}º`),
         el("td", { class: "num" }, `${d.DIS_CARGA_HORARIA}h`), el("td", { class: "num" }, d.DIS_CARGA_HORARIA / 15),
-        el("td", {}, d.DIS_ELETIVA ? "Eletiva" : "Obrigatória"), el("td", {}, (profsPorDis.get(d.DIS_ID) || []).join(", "))))));
+        el("td", {}, (profsPorDis.get(d.DIS_ID) || []).join(", "))))));
   }
 
   // ----------------------------------------------------------------- abas --

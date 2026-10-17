@@ -5,8 +5,8 @@ Como rodar, de dentro de back-end:
     uvicorn main:app --reload
 e abrir http://localhost:8000 (a documentação da API fica em /docs).
 
-Na primeira execução com o banco vazio, a carga de dados roda sozinha a
-partir de database/data (GradeProfessor + CP21).
+Os dados vêm das tabelas da equipe de dados no Supabase (precisa do .env);
+a carga é feita por database/data_ingestion. Ver graphs/dados.py.
 """
 import os
 from contextlib import asynccontextmanager
@@ -15,10 +15,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from database.data_ingestion.data_ingestion import DIAS, FAIXAS, SEMESTRE_OFERTA, montar_tabelas_das_fontes
-from database.repositorio import obter_repositorio
 from graphs.agendamento import ORDENS
 from graphs.coloracao import resumo_coloracao
+from graphs.dados import DIAS, SEMESTRE_ATUAL, BancoSupabase
 from graphs.graph import construir_grafo_conflitos
 from graphs.grade import NOMES_ORDEM, GradeEmMemoria
 
@@ -33,12 +32,10 @@ class Contexto:
         self.grade = None
 
     def iniciar(self, repo=None):
-        self.repo = repo or obter_repositorio()
-        if self.repo.esta_vazio():
-            self.repo.substituir_tudo(montar_tabelas_das_fontes()[0])
+        self.repo = repo or BancoSupabase()
         self.dados = self.repo.carregar_dados()
-        linhas = self.repo.carregar_grade(SEMESTRE_OFERTA)
-        self.grade = GradeEmMemoria.de_linhas(self.dados, linhas, f"Banco: grade {SEMESTRE_OFERTA}")
+        linhas = self.repo.carregar_grade(SEMESTRE_ATUAL)
+        self.grade = GradeEmMemoria.de_linhas(self.dados, linhas, f"Banco: grade {SEMESTRE_ATUAL}")
 
     def exigir_grade(self):
         if self.grade is None:
@@ -90,18 +87,13 @@ def dados():
         "disciplinas": d["disciplinas"],
         "alocacoes": [{"ALO_ID": a["ALO_ID"], "PRO_ID": a["PRO_ID"], "DIS_ID": a["DIS_ID"]} for a in d["alocacoes"]],
         "dias": [{"dia": n, "nome": nome} for n, nome in DIAS.items()],
-        "faixas": [{"faixa": f, "inicio": i, "fim": t} for f, i, t in FAIXAS],
+        "faixas": [{"faixa": h["HOR_FAIXA"], "inicio": h["HOR_INICIO"], "fim": h["HOR_FIM"]}
+                   for h in d["horarios"] if h["HOR_DIA"] == min(DIAS)],
         "periodos": sorted({x["DIS_PERIODO"] for x in d["disciplinas"]}),
         "semestres": ctx.repo.semestres(),
         "ordens": [{"valor": o, "nome": NOMES_ORDEM[o]} for o in ORDENS],
         "banco": ctx.repo.descricao,
     }
-
-
-@app.get("/api/carga/relatorio")
-def relatorio_carga():
-    """Relatório da carga: linhas ignoradas, horários modificados e divergências com o CP21."""
-    return montar_tabelas_das_fontes()[1]
 
 
 # ------------------------------------------------------------------ grade --
@@ -153,7 +145,10 @@ def salvar(pedido: PedidoSemestre):
     if not semestre:
         raise HTTPException(400, "Informe o semestre.")
     grade = ctx.exigir_grade()
-    n = ctx.repo.salvar_grade(semestre, grade.linhas(semestre))
+    try:
+        n = ctx.repo.salvar_grade(semestre, grade.linhas(semestre))
+    except ValueError as erro:
+        raise HTTPException(400, str(erro))
     grade.origem = f"Banco: grade {semestre}"
     grade.editada = False
     return {"semestre": semestre, "linhas": n, "conflitos": len(grade.conflitos()),
