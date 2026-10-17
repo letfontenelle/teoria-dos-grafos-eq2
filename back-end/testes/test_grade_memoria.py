@@ -18,18 +18,17 @@ TABELAS, _ = montar_tabelas_das_fontes()
 DADOS = montar_dados(TABELAS)
 
 
-def test_grade_atual_da_coordenacao_aponta_conflitos_entre_eletivas():
-    # A grade histórica da coordenação sobrepõe eletivas do mesmo período.
-    assert any("mesmo período" in v for v in
-               validar_grade(TABELAS["GRA_GRADE_HORARIA"], DADOS["alocacoes"]))
+def test_grade_atual_da_coordenacao_nao_tem_conflitos_no_modelo():
+    # Valida o modelo contra a realidade: eletivas do mesmo período podem coincidir.
+    assert validar_grade(TABELAS["GRA_GRADE_HORARIA"], DADOS["alocacoes"]) == []
     grade = GradeEmMemoria.de_linhas(DADOS, TABELAS["GRA_GRADE_HORARIA"], "atual")
-    assert grade.conflitos()
+    assert grade.conflitos() == []
 
 
-def test_dois_componentes_do_mesmo_periodo_tem_aresta_inclusive_eletivas():
+def test_duas_eletivas_do_mesmo_periodo_nao_tem_aresta_mas_obrigatoria_tem():
     G = construir_grafo_conflitos(DADOS["alocacoes"])
     alo = {a["DIS_DISCIPLINA"]["DIS_CODIGO"]: a["ALO_ID"] for a in DADOS["alocacoes"]}
-    assert G.has_edge(alo["CCMP0082"], alo["CCMP0023"])       # duas eletivas do 9º
+    assert not G.has_edge(alo["CCMP0082"], alo["CCMP0023"])   # duas eletivas do 9º
     assert G.has_edge(alo["CCMP0082"], alo["CCMP0127"])       # eletiva x obrigatória do 9º
 
 

@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS "PRO_PROFESSOR" (
 -- Disciplina do perfil curricular CP21.
 -- DIS_PERIODO: período em que a disciplina é ofertada (define o conflito "pleno").
 -- DIS_CARGA_HORARIA: horas no semestre; faixas por semana = carga / 15.
--- DIS_ELETIVA: identifica disciplinas eletivas; elas também conflitam com
--- qualquer outra disciplina do mesmo período na grade gerada.
+-- DIS_ELETIVA: eletivas do mesmo período podem coincidir entre si (o aluno escolhe).
 CREATE TABLE IF NOT EXISTS "DIS_DISCIPLINA" (
     "DIS_ID"            INTEGER PRIMARY KEY,
     "DIS_CODIGO"        VARCHAR(10)  NOT NULL UNIQUE,

@@ -23,9 +23,8 @@ def horarios_semana():
     return [{"HOR_ID": d * 12 + f + 1, "HOR_DIA": dia} for d, dia in enumerate(DIAS) for f in range(12)]
 
 
-def alo(alo_id, pro_id, periodo, nome=None, eletiva=False):
-    a = {"ALO_ID": alo_id, "PRO_ID": pro_id,
-         "DIS_DISCIPLINA": {"DIS_PERIODO": periodo, "DIS_ELETIVA": eletiva}}
+def alo(alo_id, pro_id, periodo, nome=None):
+    a = {"ALO_ID": alo_id, "PRO_ID": pro_id, "DIS_DISCIPLINA": {"DIS_PERIODO": periodo}}
     if nome:
         a["PRO_NOME"] = nome
     return a
@@ -74,13 +73,6 @@ def test_mesmo_periodo_nao_fica_no_mesmo_horario():
     assert slots(r, 1).isdisjoint(slots(r, 2))
 
 
-def test_eletivas_do_mesmo_periodo_sao_agendadas_em_horarios_diferentes():
-    alocacoes = [alo(1, 1, 9, eletiva=True), alo(2, 2, 9, eletiva=True)]
-    r = gerar_grade(alocacoes, horarios_semana(), "2026.2")
-    assert r["violacoes"] == []
-    assert slots(r, 1).isdisjoint(slots(r, 2))
-
-
 def test_aula_de_4_horarios_ocupa_4_horarios_em_dois_dias_diferentes():
     r = gerar_grade([alo(1, 1, 1)], horarios_semana(), "2026.2")
     assert len(slots(r, 1)) == 4
@@ -121,13 +113,6 @@ def test_validador_detecta_choque_de_professor():
     linhas = [{"GRA_SEMESTRE": "2026.2", "ALO_ID": 1, "HOR_ID": 1},
               {"GRA_SEMESTRE": "2026.2", "ALO_ID": 2, "HOR_ID": 1}]
     assert any("mesmo professor" in v for v in validar_grade(linhas, alocacoes))
-
-
-def test_validador_detecta_choque_entre_eletivas_do_mesmo_periodo():
-    alocacoes = [alo(1, 10, 9, eletiva=True), alo(2, 20, 9, eletiva=True)]
-    linhas = [{"GRA_SEMESTRE": "2026.2", "ALO_ID": 1, "HOR_ID": 1},
-              {"GRA_SEMESTRE": "2026.2", "ALO_ID": 2, "HOR_ID": 1}]
-    assert any("mesmo período (9)" in v for v in validar_grade(linhas, alocacoes))
 
 
 def test_carga_horaria_define_aulas_por_semana():

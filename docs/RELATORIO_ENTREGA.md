@@ -50,15 +50,15 @@ Todo o código está no PR [#5](https://github.com/letfontenelle/teoria-dos-graf
   - As **7 disciplinas com horário modificado** entram com o horário atual.
   - Carga horária vem do **CP21**.
   - **Relatório de linhas ignoradas** em [`relatorio_carga.md`](../back-end/database/data/relatorio_carga.md).
-- **Grafo em memória** a partir do banco: alocações (48 vértices, 138 arestas) e sessões de aula (89 vértices, 507 arestas).
+- **Grafo em memória** a partir do banco: alocações (48 vértices, 118 arestas) e sessões de aula (89 vértices, 427 arestas).
 - **Grade no front-end a partir do grafo:** a aba *Gerar grade* mostra a coloração passo a passo, de grafo sem cor (grade vazia) a parcial e completa.
 - **Grade salva no banco:** *Salvar* grava na `GRA_GRADE_HORARIA`; *Carregar* reinstancia o grafo a partir da grade salva.
 - **Extra:** arrastar uma aula na tela troca a cor do vértice no grafo e mostra os conflitos em vermelho.
-- **Validação da grade atual:** a grade histórica da coordenação contém sobreposições entre eletivas do mesmo período. A regra da grade gerada foi reforçada para evitar essas sobreposições nas próximas grades.
+- **Validação contra a realidade:** a grade atual da coordenação tem **0 conflitos** no modelo. Isso usa a regra descoberta nos dados: duas eletivas do mesmo período podem coincidir.
 
 ### Iteração 06 — Algoritmo de coloração e grade viável
 - **DSATUR e guloso implementados pela equipe** (`graphs/coloracao.py`), com o desempate da referência da Iteração 06 (saturação, grau, id).
-- No grafo de sessões, o DSATUR usa **13 cores = maior clique**, ou seja, é **ótimo** (atinge o número cromático). O guloso simples usa 15.
+- No grafo de sessões, o DSATUR usa **13 cores = maior clique**, ou seja, é **ótimo** (atinge o número cromático). O guloso simples usa 14.
 - **Grade gerada sem choques**, com carga/15 faixas por disciplina, exibida por período e por professor; gerar, salvar e carregar pela API.
 
 ### Documentação e repositório
@@ -109,4 +109,4 @@ Opcionais ainda não feitos: cadastros de curso e disciplina (Iteração 05) e d
 | SQLAlchemy + Alembic | `schema.sql` versionado + repositório SQLite/Supabase | A equipe já usava o cliente do Supabase; o SQL atende o modelo físico pedido |
 | PostgreSQL | PostgreSQL (Supabase) + SQLite local como alternativa | O Supabase está pausado; o mesmo schema roda nos dois |
 | Planilha manual de dados | CSVs extraídos do GradeProfessor.pdf e do CP21 | A planilha não tinha Redes de Computadores 2 nem a carga horária, e a US-01 pede carga a partir dos materiais |
-| Período do CP21 | Período da oferta, com divergências no relatório | É o que a coordenação usa na grade atual; a grade histórica tem 3 sobreposições entre eletivas do mesmo período |
+| Período do CP21 | Período da oferta, com divergências no relatório | É o que a coordenação usa na grade atual (com ele, a grade atual tem 0 conflitos) |
