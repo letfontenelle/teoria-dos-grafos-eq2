@@ -16,9 +16,9 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Abra http://localhost:8000. Na primeira execução, a carga de dados roda sozinha e cria o banco SQLite local. A documentação da API fica em http://localhost:8000/docs.
+Antes, copie `.env.example` (na raiz) para `.env` e preencha as chaves do Supabase. Os dados vêm das tabelas da equipe de dados no Supabase. Abra http://localhost:8000; a documentação da API fica em http://localhost:8000/docs.
 
-Testes: `python -m pytest testes -v`, de dentro de `back-end` (66 testes).
+Testes: `python -m pytest testes -v`, de dentro de `back-end` (59 testes). Eles usam a planilha da equipe de dados e não acessam o Supabase.
 
 ## O que o sistema faz
 
@@ -27,7 +27,7 @@ Testes: `python -m pytest testes -v`, de dentro de `back-end` (66 testes).
 | **Grade** | Grade por período ou por professor, nos três estados do protótipo (sem conflito, com conflito, vazio). Arrastar uma aula para outra faixa muda a cor do vértice no grafo e recalcula os conflitos. |
 | **Gerar grade** | Gera a grade com DSATUR ou com a busca gulosa e mostra a coloração passo a passo: grafo sem cor = grade vazia, parcialmente colorido = grade parcial, todo colorido = grade completa. Salva e carrega grades do banco. |
 | **Grafo de conflitos** | O subgrafo de um período ou de um professor, com as cores (blocos de horário) e as arestas por motivo. Exporta o grafo em JSON. |
-| **Dados e carga** | Relatório da carga (linhas ignoradas, horários modificados, divergências com o CP21) e a tabela de disciplinas. |
+| **Dados e carga** | Totais das tabelas do Supabase e a tabela de disciplinas. |
 
 ![Coloração parcial passo a passo](docs/img/tela_coloracao_parcial.jpg)
 
@@ -35,7 +35,6 @@ Testes: `python -m pytest testes -v`, de dentro de `back-end` (66 testes).
 
 - [Modelo de dados](docs/modelo-de-dados.md): conceitual, lógico e físico, com as correções da professora.
 - [Modelagem em grafos](back-end/graphs/MODELAGEM.md): vértices, arestas, cores, algoritmos e resultados.
-- [Relatório da carga](back-end/database/data/relatorio_carga.md): o que foi carregado e o que foi ignorado.
 - [Back-end](back-end/README.md): arquivos e comandos.
 - [Relatório da entrega das Iterações 03, 04 e 06](docs/RELATORIO_ENTREGA.md).
 
@@ -44,8 +43,8 @@ Testes: `python -m pytest testes -v`, de dentro de `back-end` (66 testes).
 ```
 back-end/
   main.py                 API (FastAPI) e servidor do front-end
-  database/               schema.sql, carga de dados, repositório (SQLite/Supabase), fontes
-  graphs/                 grafo de conflitos, coloração (DSATUR), agendamento, grade em memória
+  database/               conexão com o Supabase e carga pela planilha (equipe de dados)
+  graphs/                 leitura das tabelas, grafo de conflitos, coloração (DSATUR), agendamento, grade em memória
   testes/                 pytest
 front-end/                telas em HTML, CSS e JavaScript (servidas pela API)
 docs/                     modelo de dados, relatório e imagens

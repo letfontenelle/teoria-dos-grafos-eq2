@@ -1,4 +1,4 @@
-"""API (main.py) com um banco SQLite temporário. Rodar: python -m pytest testes -v"""
+"""API (main.py) com o Supabase simulado em memória (dados da planilha). Rodar: python -m pytest testes -v"""
 import os
 import sys
 
@@ -8,26 +8,27 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import main  # noqa: E402
-from database.repositorio import RepositorioSQLite  # noqa: E402
+from graphs.dados import BancoSupabase, tabelas_da_planilha  # noqa: E402
+from supabase_falso import ClienteSupabaseFalso  # noqa: E402
 
 
 @pytest.fixture()
-def cliente(tmp_path):
-    main.ctx.iniciar(RepositorioSQLite(str(tmp_path / "api.db")))  # banco vazio: a carga roda sozinha
+def cliente():
+    main.ctx.iniciar(BancoSupabase(ClienteSupabaseFalso(tabelas_da_planilha())))
     with TestClient(main.app) as c:
         yield c
 
 
-def test_dados_carregados_automaticamente(cliente):
+def test_dados_das_tabelas_da_equipe_de_dados(cliente):
     d = cliente.get("/api/dados").json()
-    assert len(d["professores"]) == 26 and len(d["disciplinas"]) == 48
-    assert d["semestres"] == [{"semestre": "2026.2", "linhas": 181}]
+    assert len(d["professores"]) == 26 and len(d["disciplinas"]) == 47
+    assert d["semestres"] == [{"semestre": "2026.2", "linhas": 179}]
+    assert [f["faixa"] for f in d["faixas"]] == list("ABCDEFGHIJKL")
 
 
 def test_grade_inicial_e_a_grade_atual_do_banco(cliente):
     g = cliente.get("/api/grade").json()
     assert g["origem"] == "Banco: grade 2026.2" and g["situacao"] == "completa"
-    assert g["resumo"]["conflitos"] == 0
 
 
 def test_gerar_e_ver_por_passos(cliente):
@@ -50,6 +51,12 @@ def test_salvar_e_carregar(cliente):
     assert cliente.post("/api/grade/carregar", json={"semestre": "1999.1"}).status_code == 404
 
 
+def test_nao_sobrescreve_a_grade_da_carga(cliente):
+    cliente.post("/api/grade/gerar", json={"ordem": "dsatur"})
+    assert cliente.post("/api/grade/salvar", json={"semestre": "2026.2"}).status_code == 400
+    assert cliente.get("/api/dados").json()["semestres"] == [{"semestre": "2026.2", "linhas": 179}]
+
+
 def test_mover_cria_conflito_visivel(cliente):
     g = cliente.post("/api/grade/gerar", json={"ordem": "dsatur"}).json()
     a = g["sessoes"][0]
@@ -65,8 +72,3 @@ def test_grafo_e_coloracao(cliente):
     assert grafo["vertices"] and grafo["arestas"]
     c = cliente.get("/api/grafo/coloracao", params={"nivel": "alocacoes"}).json()
     assert c["numero_de_cores"] == c["maior_clique"] and c["otima"]
-
-
-def test_relatorio_da_carga(cliente):
-    rel = cliente.get("/api/carga/relatorio").json()
-    assert rel["linhas_ignoradas"] == [] and len(rel["horarios_modificados"]) == 7

@@ -7,8 +7,8 @@ Itens 14 (modelo em grafos, Iteração 04) e 15 (algoritmo de coloração, Itera
 O problema de agendamento (perfil curricular e aluno pleno) é mapeado para um **grafo de conflitos para coloração**.
 
 * **Vértices ($V$):**
-  * No grafo de **alocações** (`construir_grafo_conflitos`), cada vértice é um registro de `ALO_ALOCACAO` (professor x disciplina), com os atributos `PRO_ID`, `DIS_PERIODO` e `DIS_ELETIVA` vindos do banco.
-  * No grafo de **sessões** (`construir_grafo_sessoes`, usado na grade), cada alocação vira uma ou mais sessões de aula: carga horária / 15 faixas por semana, divididas em blocos de 2 faixas (uma aula de 3 faixas é uma sessão contínua). Uma disciplina de 60h tem 2 sessões, por exemplo.
+  * No grafo de **alocações** (`construir_grafo_conflitos`), cada vértice é um registro de `ALO_ALOCACAO` (professor x disciplina), com os atributos `PRO_ID`, `DIS_PERIODO` e `DIS_ELETIVA` (`graphs/dados.py` lê `DI_DISCIPLINA` no Supabase; a eletiva ainda não está no banco).
+  * No grafo de **sessões** (`construir_grafo_sessoes`, usado na grade), cada alocação vira uma ou mais sessões de aula: as faixas que ela tem na grade atual, divididas em blocos de 2 faixas (uma aula de 3 faixas é uma sessão contínua). Uma disciplina de 60h tem 2 sessões, por exemplo.
 
 * **Arestas ($E$):** dois vértices $A$ e $B$ são ligados quando não podem ocupar o mesmo horário:
   1. **Conflito de professor:** $A.\text{PRO\_ID} = B.\text{PRO\_ID}$. Um professor não ministra duas aulas ao mesmo tempo.
@@ -20,7 +20,9 @@ O problema de agendamento (perfil curricular e aluno pleno) é mapeado para um *
 
 ### Por que a regra das eletivas
 
-Aplicando o modelo à grade **atual** da coordenação (GradeProfessor.pdf, semestre 2026.2), a única fonte de "choque" eram 3 pares de **eletivas** do mesmo período (9º: Computação Natural x Métodos Formais; 10º: Formação de Empreendedores x PDI e Conversão Eletromecânica x Redes Neurais). Nenhuma obrigatória colide com outra do mesmo período, nem com eletiva do mesmo período. Com a regra, a grade real tem **0 conflitos** no modelo, o que valida a modelagem contra a realidade (teste `test_grade_atual_da_coordenacao_nao_tem_conflitos_no_modelo`).
+Aplicando o modelo à grade **atual** da coordenação (GradeProfessor.pdf, semestre 2026.2), a única fonte de "choque" eram 3 pares de **eletivas** do mesmo período (9º: Computação Natural x Métodos Formais; 10º: Formação de Empreendedores x PDI e Conversão Eletromecânica x Redes Neurais). Nenhuma obrigatória colide com outra do mesmo período, nem com eletiva do mesmo período. Com a regra, a grade real tem **0 conflitos** no modelo, o que valida a modelagem contra a realidade.
+
+Com os dados atuais do Supabase, a regra fica sem efeito: o banco não diz quais disciplinas são eletivas, então a grade atual aparece com 6 choques, todos entre disciplinas do mesmo período (teste `test_grade_atual_so_tem_choques_entre_disciplinas_do_mesmo_periodo`).
 
 ## 2. Algoritmos de coloração (implementados pela equipe)
 
@@ -32,14 +34,14 @@ Conforme a Iteração 02, o NetworkX é usado só como estrutura de grafo. Os al
 
 Na **geração da grade** (`agendamento.py`), a busca gulosa do Gabriel coloca as sessões em blocos de horário respeitando preferências de turno (manhã primeiro) e espalhando as sessões da mesma disciplina em dias diferentes. A ordem em que as sessões são escolhidas pode ser alfabética por professor, por maior grau ou **DSATUR** (padrão no front-end).
 
-## 3. Resultados com os dados reais (2026.2)
+## 3. Resultados com os dados reais (2026.2, tabelas do Supabase)
 
 | Grafo | Vértices | Arestas | DSATUR | Guloso | Maior clique | Ótimo? |
 |---|---|---|---|---|---|---|
-| Alocações (professor x disciplina) | 48 | 118 | 7 cores | 7 cores | 7 | sim |
-| Sessões (blocos de aula) | 89 | 427 | 13 cores | 14 cores | 13 | DSATUR sim, guloso não |
+| Alocações (professor x disciplina) | 48 | 140 | 7 cores | 7 cores | 7 | sim |
+| Sessões (blocos de aula) | 89 | 523 | 15 cores | 15 cores | 15 | sim |
 
-* A grade gerada tem **0 choques** de professor ou de período, e cada disciplina recebe exatamente carga / 15 faixas (testes em `testes/test_grade_memoria.py`).
+* A grade gerada tem **0 choques** de professor ou de período, e cada disciplina recebe exatamente as faixas que tem na grade atual (testes em `testes/test_grade_memoria.py`).
 * Gerar a grade completa leva poucos milissegundos.
 
 ## 4. Do grafo para a grade, e da grade para o grafo

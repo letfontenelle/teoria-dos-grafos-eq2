@@ -95,7 +95,7 @@ def grafo_em_json(G, cores=None):
 
 # Bloco de execução para teste direto do arquivo:
 #   python graphs/graph.py   (de dentro de back-end)
-# Lê o grafo do banco configurado (SQLite local por padrão), colore com DSATUR,
+# Lê as alocações das tabelas da equipe de dados no Supabase, colore com DSATUR,
 # exporta graphs/graph.json e desenha docs/img/grafo_conflitos.png.
 if __name__ == "__main__":
     import sys
@@ -104,15 +104,11 @@ if __name__ == "__main__":
     if pasta_backend not in sys.path:
         sys.path.insert(0, pasta_backend)
 
-    from database.repositorio import obter_repositorio
     from graphs.coloracao import maior_clique
+    from graphs.dados import BancoSupabase
 
     print("--- Testando a Modelagem em Grafos ---")
-    repo = obter_repositorio()
-    if repo.esta_vazio():
-        from database.data_ingestion.data_ingestion import montar_tabelas_das_fontes
-        repo.substituir_tudo(montar_tabelas_das_fontes()[0])
-    alocacoes = repo.carregar_dados()["alocacoes"]
+    alocacoes = BancoSupabase().carregar_dados()["alocacoes"]
 
     G = construir_grafo_conflitos(alocacoes)
     print(f"Vértices (Aulas) criados: {G.number_of_nodes()}")
