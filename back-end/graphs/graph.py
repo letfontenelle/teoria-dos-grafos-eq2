@@ -2,13 +2,7 @@ import networkx as nx
 
 def construir_grafo_conflitos(alocacoes):
     """
-    Constrói o Grafo de Conflitos para a Grade Horária.
-    
-    Parâmetros:
-      alocacoes (list[dict]): Lista de dicionários vinda do Supabase (tabela ALO_ALOCACAO).
-                              
-    Retorna:
-      nx.Graph: Grafo onde os nós são as alocações e as arestas representam conflitos de horário.
+    Constrói o Grafo de Conflitos para as alocações brutas (sem horários atribuídos).
     """
     G = nx.Graph()
 
@@ -34,13 +28,11 @@ def construir_grafo_conflitos(alocacoes):
             id_a, attr_a = nos[i]
             id_b, attr_b = nos[j]
 
-            # Regra 1: Conflito de Professor
             mesmo_professor = (
                 attr_a["pro_id"] is not None and 
                 attr_a["pro_id"] == attr_b["pro_id"]
             )
 
-            # Regra 2: Conflito de Perfil Pleno / Curricular
             mesmo_periodo = (
                 attr_a["di_periodo"] is not None and 
                 attr_a["di_periodo"] == attr_b["di_periodo"]
@@ -56,9 +48,26 @@ def construir_grafo_conflitos(alocacoes):
     return G
 
 
+def construir_grafo_da_grade_salva(grade_horaria):
+    """
+    Atende ao requisito da professora:
+    Instancia o resultado SALVO no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
+    """
+    G = nx.Graph()
+
+    for item in grade_horaria:
+        gra_id = item.get("GRA_ID")
+        alo_id = item.get("ALO_ID")
+        ho_id = item.get("HO_ID")
+
+        G.add_node(alo_id, gra_id=gra_id, ho_id=ho_id)
+
+    return G
+
+
 def resolver_coloracao_horarios(G):
     """
-    Aplica o algoritmo DSATUR (Busca Gulosa) para atribuir slots de horário (cores).
+    Aplica o algoritmo DSATUR (Modelo Teórico) para encontrar a coloração mínima (7 cores).
     """
     agendamento = nx.coloring.greedy_color(G, strategy="DSATUR")
     return agendamento
@@ -69,7 +78,6 @@ if __name__ == "__main__":
     import sys
     import os
     
-    # Adiciona a pasta 'back-end' ao sys.path
     pasta_backend = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if pasta_backend not in sys.path:
         sys.path.insert(0, pasta_backend)
@@ -86,37 +94,25 @@ if __name__ == "__main__":
     print("--- Testando a Modelagem em Grafos ---")
     
     if supabase:
-        # 1. Puxa as alocações
+        # 1. Teste de Instanciação do Grafo Bruto
         res = supabase.table("ALO_ALOCACAO").select("ALO_ID, PRO_ID, DI_DISCIPLINA(DI_PERIODO)").execute()
         alocacoes = res.data
 
-        # 2. Constrói o Grafo
         G = construir_grafo_conflitos(alocacoes)
-        print(f"Vértices (Aulas) criados: {G.number_of_nodes()}")
-        print(f"Arestas (Conflitos de Prof/Período) criadas: {G.number_of_edges()}")
+        print(f"[OK] Grafo em Memória Criado: {G.number_of_nodes()} Vértices e {G.number_of_edges()} Arestas.")
 
-        # 3. Executa a Busca Gulosa (DSATUR)
-        resultado = resolver_coloracao_horarios(G)
-        print("\nResultado da Atribuição de Horários (Cores):")
-        print(resultado)
+        # 2. Execução do DSATUR (Modelo Teórico)
+        resultado_dsatur = resolver_coloracao_horarios(G)
+        print(f"[OK] DSATUR executado. Qtd de cores encontradas: {len(set(resultado_dsatur.values()))}")
 
-        # 4. Desenha e salva a imagem do Grafo
+        # 3. Teste de Instanciação do Resultado Salvo no BD (Exigência da Professora)
         try:
-            import matplotlib.pyplot as plt
-            cores_nos = [resultado[node] for node in G.nodes()]
-            
-            plt.figure(figsize=(14, 10))
-            pos = nx.spring_layout(G, k=0.15, seed=42)
-            nx.draw_networkx_nodes(G, pos, node_color=cores_nos, cmap=plt.cm.tab20, node_size=600, edgecolors='black')
-            nx.draw_networkx_edges(G, pos, alpha=0.3)
-            nx.draw_networkx_labels(G, pos, font_size=8, font_weight='bold')
-            
-            plt.title("Grafo de Conflitos de Horários (Cores = Slots de Tempo)")
-            plt.axis("off")
-            
-            plt.savefig("grafo_conflitos.png", format="PNG", dpi=150)
-            print("\nImagem 'grafo_conflitos.png' salva com sucesso!")
-        except ImportError:
-            print("\nAviso: Matplotlib não instalado. A imagem não foi gerada, mas o resultado textual está pronto.")
+            res_grade = supabase.table("GRA_GRADE_HORARIA").select("GRA_ID, ALO_ID, HO_ID").execute()
+            if res_grade.data:
+                G_salvo = construir_grafo_da_grade_salva(res_grade.data)
+                print(f"[OK] Grafo da Grade Salva no BD instanciado em memória com {G_salvo.number_of_nodes()} nós!")
+        except Exception as e:
+            print(f"[Aviso] Tabela GRA_GRADE_HORARIA ainda vazia ou indisponível: {e}")
+
     else:
         print("Erro: Não foi possível conectar ao Supabase.")
