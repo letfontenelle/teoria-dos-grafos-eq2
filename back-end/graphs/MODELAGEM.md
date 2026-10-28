@@ -1,51 +1,59 @@
-# Projeto de Teoria dos Grafos - Equipe 02
-## Modelagem do Grafo para Montagem da Grade Horária
+# Modelagem do Grafo para Montagem da Grade Horária
 
-Este repositório contém a modelagem em grafos e os algoritmos desenvolvidos para a resolução do problema de agendamento de horários (Perfil Curricular e Pleno).
-
----
+Itens 14 (modelo em grafos, Iteração 04) e 15 (algoritmo de coloração, Iteração 06) do backlog.
 
 ## 1. Mapeamento do Banco de Dados para o Grafo
 
-O problema foi mapeado para um **Grafo de Conflitos para Coloração** $G = (V, E)$:
+O problema de agendamento (perfil curricular e aluno pleno) é mapeado para um **grafo de conflitos para coloração**.
 
-* **Vértices (Nós - $V$):** Representam os registros de aulas a serem alocadas (tabela `ALO_ALOCACAO`).
-  * Cada nó possui os atributos `PRO_ID` (Professor) e `DI_PERIODO` (Período/Perfil Curricular da disciplina).
-* **Arestas (Incompatibilidades / Conflitos - $E$):** Conectam duas alocações sempre que houver restrição de horário simultâneo:
-  1. **Conflito de Professor:** Um professor não pode ministrar duas aulas no mesmo horário.
-  2. **Conflito de Perfil Curricular / Pleno:** Disciplinas do mesmo período não podem ter choque de horário para o aluno pleno.
-* **Cores (Slots de Horário):** Representam os horários disponíveis (tabela `HO_HORARIO`).
+* **Vértices ($V$):**
+  * No grafo de **alocações** (`construir_grafo_conflitos`), cada vértice é um registro de `ALO_ALOCACAO` (professor x disciplina), com os atributos `PRO_ID`, `DIS_PERIODO` e `DIS_ELETIVA` (`graphs/dados.py` lê `DI_DISCIPLINA` no Supabase; a eletiva ainda não está no banco).
+  * No grafo de **sessões** (`construir_grafo_sessoes`, usado na grade), cada alocação vira uma ou mais sessões de aula: as faixas que ela tem na grade atual, divididas em blocos de 2 faixas (uma aula de 3 faixas é uma sessão contínua). Uma disciplina de 60h tem 2 sessões, por exemplo.
 
----
+* **Arestas ($E$):** dois vértices $A$ e $B$ são ligados quando não podem ocupar o mesmo horário:
+  1. **Conflito de professor:** $A.\text{PRO\_ID} = B.\text{PRO\_ID}$. Um professor não ministra duas aulas ao mesmo tempo.
+  2. **Conflito de perfil pleno/curricular:** $A.\text{DIS\_PERIODO} = B.\text{DIS\_PERIODO}$, **exceto quando as duas são eletivas**. O aluno blocado precisa conseguir cursar todas as obrigatórias do seu período e qualquer eletiva junto com elas; entre duas eletivas, ele escolhe, então elas podem coincidir.
+  3. **Mesma disciplina** (só no grafo de sessões): as sessões da mesma alocação não podem coincidir.
 
-## 2. Estratégia Algorítmica e Validação Matemática
+* **Cores:** a cor de um vértice é o horário que ele ocupa. No grafo de sessões, cada cor é um **bloco** de faixas seguidas de `HOR_HORARIO` (ex.: `2C 2D` = segunda, 08:50–10:30). Uma coloração própria (vizinhos com cores diferentes) é uma grade sem choques.
+* **Persistência:** a coloração vira linhas de `GRA_GRADE_HORARIA` (`ALO_ID`, `HOR_ID`, `GRA_SEMESTRE`). O caminho inverso também existe: uma grade salva no banco é lida e transformada de novo em grafo colorido (`GradeEmMemoria.de_linhas`).
 
-Para responder com precisão tanto aos requisitos teóricos da disciplina quanto às restrições operacionais do sistema, o projeto adota duas abordagens complementares:
+### Por que a regra das eletivas
 
-### 2.1. Modelo Teórico e Validação Limite (DSATUR)
-Para análise gráfica e determinação do número cromático mínimo, utilizou-se a heurística **DSATUR (Degree of Saturation)** via `NetworkX`:
-* **Resultado de Cores:** O DSATUR encontra uma solução válida utilizando **7 cores (slots de tempo)**.
-* **Prova Teórica (Clique Máxima):** A maior clique ($\omega(G)$) identificada no grafo possui tamanho **7** (grupo de 7 aulas com conflitos mútuos). Como $\chi(G) \ge \omega(G)$, o resultado de 7 cores garante o limite inferior ótimo teórico para o conjunto de dados.
+Aplicando o modelo à grade **atual** da coordenação (GradeProfessor.pdf, semestre 2026.2), a única fonte de "choque" eram 3 pares de **eletivas** do mesmo período (9º: Computação Natural x Métodos Formais; 10º: Formação de Empreendedores x PDI e Conversão Eletromecânica x Redes Neurais). Nenhuma obrigatória colide com outra do mesmo período, nem com eletiva do mesmo período. Com a regra, a grade real tem **0 conflitos** no modelo, o que valida a modelagem contra a realidade.
 
-### 2.2. Geração Operacional da Grade
-Para atender às regras de negócio da instituição (aulas agrupadas em blocos contínuos de 2h), a persistência na tabela `GRA_GRADE_HORARIA` utiliza busca gulosa com agendamento estruturado em blocos.
+Com os dados atuais do Supabase, a regra fica sem efeito: o banco não diz quais disciplinas são eletivas, então a grade atual aparece com 6 choques, todos entre disciplinas do mesmo período (teste `test_grade_atual_so_tem_choques_entre_disciplinas_do_mesmo_periodo`).
 
----
+## 2. Algoritmos de coloração (implementados pela equipe)
 
-## 3. Capacidades de Instanciação do Grafo (`graph.py`)
+Conforme a Iteração 02, o NetworkX é usado só como estrutura de grafo. Os algoritmos estão em `coloracao.py`, seguindo a referência da Iteração 06 (Vieira, *Heurística Matemática Aplicada ao Problema da Coloração de Grafos*, UFOP, seção 4.3.1) e Brélaz (1979):
 
-O módulo `graphs/graph.py` foi atualizado para carregar a estrutura do grafo em memória sob múltiplos cenários:
+* **Guloso sequencial:** cada vértice, na ordem dada, recebe a menor cor que nenhum vizinho já colorido usa.
+* **DSATUR (Degree of Saturation):** a cada passo escolhe o vértice sem cor com **maior grau de saturação** (quantas cores diferentes os vizinhos já têm). Empate: maior grau. Depois: menor id. O vértice recebe a menor cor disponível.
+* **Limite inferior:** o tamanho da maior clique ($\omega(G)$). Todos os vértices de uma clique precisam de cores diferentes, então $\chi(G) \ge \omega(G)$. Se a coloração usa $\omega(G)$ cores, ela é ótima.
 
-1. **Instanciação a partir de Alocações Brutas (`construir_grafo_conflitos`):** Consome os dados brutos da tabela `ALO_ALOCACAO` e constrói o grafo de incompatibilidades antes do agendamento.
-2. **Instanciação do Resultado Salvo no BD (`construir_grafo_da_grade_salva`):** Carrega os registros já processados da tabela `GRA_GRADE_HORARIA`, mapeando os vértices com seus respetivos horários (`HO_ID`) para validação e visualização em memória.
+Na **geração da grade** (`agendamento.py`), a busca gulosa do Gabriel coloca as sessões em blocos de horário respeitando preferências de turno (manhã primeiro) e espalhando as sessões da mesma disciplina em dias diferentes. A ordem em que as sessões são escolhidas pode ser alfabética por professor, por maior grau ou **DSATUR** (padrão no front-end).
 
----
+## 3. Resultados com os dados reais (2026.2, tabelas do Supabase)
 
-## 4. Como Executar e Validar Localmente
+| Grafo | Vértices | Arestas | DSATUR | Guloso | Maior clique | Ótimo? |
+|---|---|---|---|---|---|---|
+| Alocações (professor x disciplina) | 48 | 140 | 7 cores | 7 cores | 7 | sim |
+| Sessões (blocos de aula) | 89 | 523 | 15 cores | 15 cores | 15 | sim |
 
-Certifique-se de ter as dependências instaladas e as variáveis de ambiente configuradas no arquivo `.env`.
+* A grade gerada tem **0 choques** de professor ou de período, e cada disciplina recebe exatamente as faixas que tem na grade atual (testes em `testes/test_grade_memoria.py`).
+* Gerar a grade completa leva poucos milissegundos.
 
-Execute o script de teste do grafo:
+## 4. Do grafo para a grade, e da grade para o grafo
 
-```bash
-python back-end/graphs/graph.py
+O card do item 14 pede quatro coisas, todas em `grade.py` e expostas pela API (`main.py`):
+
+1. **Grafo em memória a partir do modelo de dados:** `GradeEmMemoria.gerar(dados)` e `GradeEmMemoria.de_linhas(dados, linhas)` leem as tabelas do banco. Para a representação simples de linhas já salvas, `construir_grafo_da_grade_salva(linhas)` cria um vértice por `ALO_ID`, com os atributos `GRA_ID` e `HO_ID`.
+2. **Grade no front-end a partir do grafo:** `GET /api/grade?passo=k` devolve só os $k$ primeiros vértices coloridos. Com o grafo **sem cor**, a grade é **vazia**; **parcialmente colorido**, a grade é **parcial**; **totalmente colorido**, a grade é **completa**.
+3. **Grade no modelo de dados:** `POST /api/grade/salvar` grava a grade em memória (gerada ou editada na tela) em `GRA_GRADE_HORARIA`.
+4. **Extra: grafo a partir da grade editada no front-end.** Arrastar uma aula para outra faixa chama `POST /api/grade/mover`. O vértice troca de cor no grafo e os conflitos com os vizinhos são recalculados e mostrados em vermelho.
+
+## Justificativa técnica
+
+* **Complexidade:** coloração de grafos é NP-difícil. O DSATUR é $O(n^2)$ e, com os dados reais, atinge o limite inferior da maior clique, ou seja, encontra o número cromático.
+* **Garantia de zero conflitos:** antes de dar uma cor a um vértice, o algoritmo descarta as cores já usadas pelos vizinhos. Um validador independente (`validar_grade`) confere a grade pronta faixa a faixa.

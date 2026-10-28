@@ -1,51 +1,57 @@
-# Projeto de Teoria dos Grafos - Equipe 02
-## Modelagem do Grafo para Montagem da Grade Horária
+# Projeto de Teoria dos Grafos — Equipe 02
 
-Este repositório contém a modelagem em grafos e os algoritmos desenvolvidos para a resolução do problema de agendamento de horários (Perfil Curricular e Pleno).
+Grade horária do curso de Engenharia de Computação (POLI/UPE) gerada por **coloração de grafos**. Cada aula é um vértice, cada conflito (mesmo professor ou mesmo período) é uma aresta e cada cor é um horário. Uma coloração sem vizinhos da mesma cor é uma grade sem choques.
 
----
+![Grade do 5º período gerada pelo DSATUR](docs/img/tela_grade_periodo.jpg)
 
-## 1. Mapeamento do Banco de Dados para o Grafo
+## Como rodar
 
-O problema foi mapeado para um **Grafo de Conflitos para Coloração** $G = (V, E)$:
-
-* **Vértices (Nós - $V$):** Representam os registros de aulas a serem alocadas (tabela `ALO_ALOCACAO`).
-  * Cada nó possui os atributos `PRO_ID` (Professor) e `DI_PERIODO` (Período/Perfil Curricular da disciplina).
-* **Arestas (Incompatibilidades / Conflitos - $E$):** Conectam duas alocações sempre que houver restrição de horário simultâneo:
-  1. **Conflito de Professor:** Um professor não pode ministrar duas aulas no mesmo horário.
-  2. **Conflito de Perfil Curricular / Pleno:** Disciplinas do mesmo período não podem ter choque de horário para o aluno pleno.
-* **Cores (Slots de Horário):** Representam os horários disponíveis (tabela `HO_HORARIO`).
-
----
-
-## 2. Estratégia Algorítmica e Validação Matemática
-
-Para responder com precisão tanto aos requisitos teóricos da disciplina quanto às restrições operacionais do sistema, o projeto adota duas abordagens complementares:
-
-### 2.1. Modelo Teórico e Validação Limite (DSATUR)
-Para análise gráfica e determinação do número cromático mínimo, utilizou-se a heurística **DSATUR (Degree of Saturation)** via `NetworkX`:
-* **Resultado de Cores:** O DSATUR encontra uma solução válida utilizando **7 cores (slots de tempo)**.
-* **Prova Teórica (Clique Máxima):** A maior clique ($\omega(G)$) identificada no grafo possui tamanho **7** (grupo de 7 aulas com conflitos mútuos). Como $\chi(G) \ge \omega(G)$, o resultado de 7 cores garante o limite inferior ótimo teórico para o conjunto de dados.
-
-### 2.2. Geração Operacional da Grade
-Para atender às regras de negócio da instituição (aulas agrupadas em blocos contínuos de 2h), a persistência na tabela `GRA_GRADE_HORARIA` utiliza busca gulosa com agendamento estruturado em blocos.
-
----
-
-## 3. Capacidades de Instanciação do Grafo (`graph.py`)
-
-O módulo `graphs/graph.py` foi atualizado para carregar a estrutura do grafo em memória sob múltiplos cenários:
-
-1. **Instanciação a partir de Alocações Brutas (`construir_grafo_conflitos`):** Consome os dados brutos da tabela `ALO_ALOCACAO` e constrói o grafo de incompatibilidades antes do agendamento.
-2. **Instanciação do Resultado Salvo no BD (`construir_grafo_da_grade_salva`):** Carrega os registros já processados da tabela `GRA_GRADE_HORARIA`, mapeando os vértices com seus respetivos horários (`HO_ID`) para validação e visualização em memória.
-
----
-
-## 4. Como Executar e Validar Localmente
-
-Certifique-se de ter as dependências instaladas e as variáveis de ambiente configuradas no arquivo `.env`.
-
-Execute o script de teste do grafo:
+Precisa de Python 3.10 ou mais novo.
 
 ```bash
-python back-end/graphs/graph.py
+cd back-end
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Antes, copie `.env.example` (na raiz) para `.env` e preencha as chaves do Supabase. Os dados vêm das tabelas da equipe de dados no Supabase. Abra http://localhost:8000; a documentação da API fica em http://localhost:8000/docs.
+
+Testes: `python -m pytest testes -v`, de dentro de `back-end` (59 testes). Eles usam a planilha da equipe de dados e não acessam o Supabase.
+
+## O que o sistema faz
+
+| Tela | O que mostra |
+|---|---|
+| **Grade** | Grade por período ou por professor, nos três estados do protótipo (sem conflito, com conflito, vazio). Arrastar uma aula para outra faixa muda a cor do vértice no grafo e recalcula os conflitos. |
+| **Gerar grade** | Gera a grade com DSATUR ou com a busca gulosa e mostra a coloração passo a passo: grafo sem cor = grade vazia, parcialmente colorido = grade parcial, todo colorido = grade completa. Salva e carrega grades do banco. |
+| **Grafo de conflitos** | O subgrafo de um período ou de um professor, com as cores (blocos de horário) e as arestas por motivo. Exporta o grafo em JSON. |
+| **Dados e carga** | Totais das tabelas do Supabase e a tabela de disciplinas. |
+
+![Coloração parcial passo a passo](docs/img/tela_coloracao_parcial.jpg)
+
+## Documentação
+
+- [Modelo de dados](docs/modelo-de-dados.md): conceitual, lógico e físico, com as correções da professora.
+- [Modelagem em grafos](back-end/graphs/MODELAGEM.md): vértices, arestas, cores, algoritmos e resultados.
+- [Back-end](back-end/README.md): arquivos e comandos.
+- [Relatório da entrega das Iterações 03, 04 e 06](docs/RELATORIO_ENTREGA.md).
+
+## Estrutura
+
+```
+back-end/
+  main.py                 API (FastAPI) e servidor do front-end
+  database/               conexão com o Supabase e carga pela planilha (equipe de dados)
+  graphs/                 leitura das tabelas, grafo de conflitos, coloração (DSATUR), agendamento, grade em memória
+  testes/                 pytest
+front-end/                telas em HTML, CSS e JavaScript (servidas pela API)
+docs/                     modelo de dados, relatório e imagens
+```
+
+## Equipe
+
+Daniel Lourenzano, Daniel Medeiros Pessoa, Dyhego Alexandre, Edward Lira, Gabriel Esteves, Giovanna Lima, João Guilherme e Letícia Fontenelle. Gerente de produto: Prof.ª Eliane Loiola.
+
+Backlog: [Trello](https://trello.com/b/5ANDrLCH/projeto-teoria-dos-grafos) · Protótipo: [Figma](https://www.figma.com/design/8nSzcQoU79RKINqvHHM9TP/Teoria-dos-Grafos---Equipe-2)
