@@ -76,7 +76,7 @@ def construir_grafo_conflitos(alocacoes):
 def construir_grafo_da_grade_salva(grade_horaria):
     """
     Atende ao requisito da professora:
-    Instancia o resultado SALVO no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
+    Instancia a grade salva em um grafo, mantendo todas as faixas de cada alocação.
     """
     G = nx.Graph()
 
@@ -85,7 +85,10 @@ def construir_grafo_da_grade_salva(grade_horaria):
         alo_id = item.get("ALO_ID")
         ho_id = item.get("HO_ID")
 
-        G.add_node(alo_id, gra_id=gra_id, ho_id=ho_id)
+        if not G.has_node(alo_id):
+            G.add_node(alo_id, gra_ids=[], ho_ids=[])
+        G.nodes[alo_id]["gra_ids"].append(gra_id)
+        G.nodes[alo_id]["ho_ids"].append(ho_id)
 
     return G
 

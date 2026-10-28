@@ -97,11 +97,12 @@ def test_professor_com_3_aulas():
 def test_grafo_da_grade_salva():
     linhas = [
         {"GRA_ID": 4, "ALO_ID": 1, "HO_ID": 2},
-        {"GRA_ID": 4, "ALO_ID": 2, "HO_ID": 3},
+        {"GRA_ID": 5, "ALO_ID": 1, "HO_ID": 3},
+        {"GRA_ID": 6, "ALO_ID": 2, "HO_ID": 4},
     ]
 
     G = construir_grafo_da_grade_salva(linhas)
 
     assert set(G.nodes) == {1, 2}
-    assert G.nodes[1] == {"gra_id": 4, "ho_id": 2}
-    assert G.nodes[2] == {"gra_id": 4, "ho_id": 3}
+    assert G.nodes[1] == {"gra_ids": [4, 5], "ho_ids": [2, 3]}
+    assert G.nodes[2] == {"gra_ids": [6], "ho_ids": [4]}
