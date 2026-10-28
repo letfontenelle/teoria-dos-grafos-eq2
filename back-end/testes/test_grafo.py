@@ -3,7 +3,11 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from graphs.graph import construir_grafo_conflitos, resolver_coloracao_horarios
+from graphs.graph import (
+    construir_grafo_conflitos,
+    construir_grafo_da_grade_salva,
+    resolver_coloracao_horarios,
+)
 
 
 # monta uma alocacao igual a que vem do supabase
@@ -88,3 +92,17 @@ def test_professor_com_3_aulas():
     G = construir_grafo_conflitos([aula(1, 10, 1), aula(2, 10, 2), aula(3, 10, 3)])
     cores = resolver_coloracao_horarios(G)
     assert len(set(cores.values())) == 3
+
+
+def test_grafo_da_grade_salva():
+    linhas = [
+        {"GRA_ID": 4, "ALO_ID": 1, "HO_ID": 2},
+        {"GRA_ID": 5, "ALO_ID": 1, "HO_ID": 3},
+        {"GRA_ID": 6, "ALO_ID": 2, "HO_ID": 4},
+    ]
+
+    G = construir_grafo_da_grade_salva(linhas)
+
+    assert set(G.nodes) == {1, 2}
+    assert G.nodes[1] == {"gra_ids": [4, 5], "ho_ids": [2, 3]}
+    assert G.nodes[2] == {"gra_ids": [6], "ho_ids": [4]}

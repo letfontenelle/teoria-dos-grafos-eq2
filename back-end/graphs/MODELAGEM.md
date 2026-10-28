@@ -48,7 +48,7 @@ Na **geração da grade** (`agendamento.py`), a busca gulosa do Gabriel coloca a
 
 O card do item 14 pede quatro coisas, todas em `grade.py` e expostas pela API (`main.py`):
 
-1. **Grafo em memória a partir do modelo de dados:** `GradeEmMemoria.gerar(dados)` e `GradeEmMemoria.de_linhas(dados, linhas)` leem as tabelas do banco.
+1. **Grafo em memória a partir do modelo de dados:** `GradeEmMemoria.gerar(dados)` e `GradeEmMemoria.de_linhas(dados, linhas)` leem as tabelas do banco. Para a representação simples de linhas já salvas, `construir_grafo_da_grade_salva(linhas)` cria um vértice por `ALO_ID` e mantém os `GRA_ID` e `HO_ID` de todas as linhas nas listas `gra_ids` e `ho_ids`.
 2. **Grade no front-end a partir do grafo:** `GET /api/grade?passo=k` devolve só os $k$ primeiros vértices coloridos. Com o grafo **sem cor**, a grade é **vazia**; **parcialmente colorido**, a grade é **parcial**; **totalmente colorido**, a grade é **completa**.
 3. **Grade no modelo de dados:** `POST /api/grade/salvar` grava a grade em memória (gerada ou editada na tela) em `GRA_GRADE_HORARIA`.
 4. **Extra: grafo a partir da grade editada no front-end.** Arrastar uma aula para outra faixa chama `POST /api/grade/mover`. O vértice troca de cor no grafo e os conflitos com os vizinhos são recalculados e mostrados em vermelho.

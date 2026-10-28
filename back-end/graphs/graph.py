@@ -52,13 +52,11 @@ def construir_grafo_conflitos(alocacoes):
             id_a, attr_a = nos[i]
             id_b, attr_b = nos[j]
 
-            # Regra 1: Conflito de Professor
             mesmo_professor = (
                 attr_a["pro_id"] is not None and
                 attr_a["pro_id"] == attr_b["pro_id"]
             )
 
-            # Regra 2: Conflito de Perfil Pleno / Curricular
             mesmo_periodo = (
                 attr_a["dis_periodo"] is not None and
                 attr_a["dis_periodo"] == attr_b["dis_periodo"] and
@@ -71,6 +69,26 @@ def construir_grafo_conflitos(alocacoes):
                     motivo = "professor_e_perfil_pleno"
 
                 G.add_edge(id_a, id_b, motivo=motivo)
+
+    return G
+
+
+def construir_grafo_da_grade_salva(grade_horaria):
+    """
+    Atende ao requisito da professora:
+    Instancia a grade salva em um grafo, mantendo todas as faixas de cada alocação.
+    """
+    G = nx.Graph()
+
+    for item in grade_horaria:
+        gra_id = item.get("GRA_ID")
+        alo_id = item.get("ALO_ID")
+        ho_id = item.get("HO_ID")
+
+        if not G.has_node(alo_id):
+            G.add_node(alo_id, gra_ids=[], ho_ids=[])
+        G.nodes[alo_id]["gra_ids"].append(gra_id)
+        G.nodes[alo_id]["ho_ids"].append(ho_id)
 
     return G
 
