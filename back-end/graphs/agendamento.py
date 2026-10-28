@@ -22,7 +22,7 @@ from collections import defaultdict
 try:
     from graphs.graph import construir_grafo_conflitos
 except ImportError:  # quando executado de dentro da pasta graphs/
-    from graph import construir_grafo_conflitos
+    from .graph import construir_grafo_conflitos
 
 SLOTS_POR_BLOCO = 2
 LETRAS = "ABCDEF"
