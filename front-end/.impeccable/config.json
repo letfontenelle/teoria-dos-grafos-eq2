@@ -1,0 +1,23 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-08T23:30:23.804Z",
+        "reason": "Claude: Inter is the body face in the team's Figma design system (text styles Campo/Valor, Bloco/Disciplina etc. are Inter); the front-end follows those tokens"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "front-end/css/estilo.css"
+        ],
+        "createdAt": "2026-10-08T23:30:23.830Z",
+        "reason": "Claude: the 3px left border on .aula reproduces the team's Figma component 'Bloco de aula' (strokeLeftWeight=3 bound to the discipline color token)"
+      }
+    ]
+  }
+}

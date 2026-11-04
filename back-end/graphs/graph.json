@@ -1,0 +1,932 @@
+{
+ "vertices": [
+  {
+   "id": 1,
+   "pro_id": 1,
+   "dis_periodo": 9,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 2,
+   "pro_id": 2,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 4
+  },
+  {
+   "id": 3,
+   "pro_id": 3,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 4
+  },
+  {
+   "id": 4,
+   "pro_id": 4,
+   "dis_periodo": 4,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 5,
+   "pro_id": 4,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 6,
+   "pro_id": 5,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 5
+  },
+  {
+   "id": 7,
+   "pro_id": 5,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 6
+  },
+  {
+   "id": 8,
+   "pro_id": 6,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 3
+  },
+  {
+   "id": 9,
+   "pro_id": 6,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 10,
+   "pro_id": 7,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 5
+  },
+  {
+   "id": 11,
+   "pro_id": 8,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 12,
+   "pro_id": 8,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 13,
+   "pro_id": 8,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 3
+  },
+  {
+   "id": 14,
+   "pro_id": 9,
+   "dis_periodo": 9,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 15,
+   "pro_id": 10,
+   "dis_periodo": 9,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 16,
+   "pro_id": 10,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 17,
+   "pro_id": 10,
+   "dis_periodo": 4,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 18,
+   "pro_id": 10,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 3
+  },
+  {
+   "id": 19,
+   "pro_id": 11,
+   "dis_periodo": 2,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 20,
+   "pro_id": 11,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 4
+  },
+  {
+   "id": 21,
+   "pro_id": 12,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 5
+  },
+  {
+   "id": 22,
+   "pro_id": 13,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 23,
+   "pro_id": 13,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 5
+  },
+  {
+   "id": 24,
+   "pro_id": 14,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 4
+  },
+  {
+   "id": 25,
+   "pro_id": 14,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 26,
+   "pro_id": 15,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 27,
+   "pro_id": 16,
+   "dis_periodo": 3,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 28,
+   "pro_id": 16,
+   "dis_periodo": 1,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 29,
+   "pro_id": 16,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 2
+  },
+  {
+   "id": 30,
+   "pro_id": 17,
+   "dis_periodo": 9,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 31,
+   "pro_id": 17,
+   "dis_periodo": 1,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 32,
+   "pro_id": 18,
+   "dis_periodo": 4,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 33,
+   "pro_id": 18,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 3
+  },
+  {
+   "id": 34,
+   "pro_id": 19,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 35,
+   "pro_id": 19,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 36,
+   "pro_id": 20,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 37,
+   "pro_id": 20,
+   "dis_periodo": 10,
+   "eletiva": true,
+   "cor": 1
+  },
+  {
+   "id": 38,
+   "pro_id": 21,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 39,
+   "pro_id": 21,
+   "dis_periodo": 9,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 40,
+   "pro_id": 21,
+   "dis_periodo": 3,
+   "eletiva": false,
+   "cor": 0
+  },
+  {
+   "id": 41,
+   "pro_id": 22,
+   "dis_periodo": 3,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 42,
+   "pro_id": 23,
+   "dis_periodo": 4,
+   "eletiva": false,
+   "cor": 3
+  },
+  {
+   "id": 43,
+   "pro_id": 24,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 3
+  },
+  {
+   "id": 44,
+   "pro_id": 24,
+   "dis_periodo": 6,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 45,
+   "pro_id": 25,
+   "dis_periodo": 9,
+   "eletiva": true,
+   "cor": 0
+  },
+  {
+   "id": 46,
+   "pro_id": 25,
+   "dis_periodo": 7,
+   "eletiva": false,
+   "cor": 2
+  },
+  {
+   "id": 47,
+   "pro_id": 25,
+   "dis_periodo": 8,
+   "eletiva": false,
+   "cor": 1
+  },
+  {
+   "id": 48,
+   "pro_id": 26,
+   "dis_periodo": 5,
+   "eletiva": false,
+   "cor": 6
+  }
+ ],
+ "arestas": [
+  {
+   "origem": 1,
+   "destino": 15,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 1,
+   "destino": 39,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 2,
+   "destino": 10,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 2,
+   "destino": 11,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 2,
+   "destino": 34,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 2,
+   "destino": 43,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 2,
+   "destino": 46,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 3,
+   "destino": 21,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 3,
+   "destino": 22,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 3,
+   "destino": 25,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 3,
+   "destino": 33,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 3,
+   "destino": 44,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 4,
+   "destino": 5,
+   "motivo": "professor"
+  },
+  {
+   "origem": 4,
+   "destino": 17,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 4,
+   "destino": 32,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 4,
+   "destino": 42,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 6,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 7,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 8,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 16,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 24,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 5,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 6,
+   "destino": 7,
+   "motivo": "professor_e_perfil_pleno"
+  },
+  {
+   "origem": 6,
+   "destino": 8,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 6,
+   "destino": 16,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 6,
+   "destino": 24,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 6,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 7,
+   "destino": 8,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 7,
+   "destino": 16,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 7,
+   "destino": 24,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 7,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 8,
+   "destino": 9,
+   "motivo": "professor"
+  },
+  {
+   "origem": 8,
+   "destino": 16,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 8,
+   "destino": 24,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 8,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 12,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 13,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 20,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 23,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 38,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 9,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 10,
+   "destino": 11,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 10,
+   "destino": 34,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 10,
+   "destino": 43,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 10,
+   "destino": 46,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 11,
+   "destino": 12,
+   "motivo": "professor"
+  },
+  {
+   "origem": 11,
+   "destino": 13,
+   "motivo": "professor"
+  },
+  {
+   "origem": 11,
+   "destino": 34,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 11,
+   "destino": 43,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 11,
+   "destino": 46,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 12,
+   "destino": 13,
+   "motivo": "professor_e_perfil_pleno"
+  },
+  {
+   "origem": 12,
+   "destino": 20,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 12,
+   "destino": 23,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 12,
+   "destino": 38,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 12,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 13,
+   "destino": 20,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 13,
+   "destino": 23,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 13,
+   "destino": 38,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 13,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 14,
+   "destino": 15,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 14,
+   "destino": 39,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 15,
+   "destino": 16,
+   "motivo": "professor"
+  },
+  {
+   "origem": 15,
+   "destino": 17,
+   "motivo": "professor"
+  },
+  {
+   "origem": 15,
+   "destino": 18,
+   "motivo": "professor"
+  },
+  {
+   "origem": 15,
+   "destino": 30,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 15,
+   "destino": 39,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 15,
+   "destino": 45,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 16,
+   "destino": 17,
+   "motivo": "professor"
+  },
+  {
+   "origem": 16,
+   "destino": 18,
+   "motivo": "professor"
+  },
+  {
+   "origem": 16,
+   "destino": 24,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 16,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 17,
+   "destino": 18,
+   "motivo": "professor"
+  },
+  {
+   "origem": 17,
+   "destino": 32,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 17,
+   "destino": 42,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 19,
+   "destino": 20,
+   "motivo": "professor"
+  },
+  {
+   "origem": 20,
+   "destino": 23,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 20,
+   "destino": 38,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 20,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 21,
+   "destino": 22,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 21,
+   "destino": 25,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 21,
+   "destino": 33,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 21,
+   "destino": 44,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 22,
+   "destino": 23,
+   "motivo": "professor"
+  },
+  {
+   "origem": 22,
+   "destino": 25,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 22,
+   "destino": 33,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 22,
+   "destino": 44,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 23,
+   "destino": 38,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 23,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 24,
+   "destino": 25,
+   "motivo": "professor"
+  },
+  {
+   "origem": 24,
+   "destino": 47,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 25,
+   "destino": 33,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 25,
+   "destino": 44,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 27,
+   "destino": 28,
+   "motivo": "professor"
+  },
+  {
+   "origem": 27,
+   "destino": 29,
+   "motivo": "professor"
+  },
+  {
+   "origem": 27,
+   "destino": 40,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 27,
+   "destino": 41,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 28,
+   "destino": 29,
+   "motivo": "professor"
+  },
+  {
+   "origem": 28,
+   "destino": 31,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 30,
+   "destino": 31,
+   "motivo": "professor"
+  },
+  {
+   "origem": 30,
+   "destino": 39,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 32,
+   "destino": 33,
+   "motivo": "professor"
+  },
+  {
+   "origem": 32,
+   "destino": 42,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 33,
+   "destino": 44,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 34,
+   "destino": 35,
+   "motivo": "professor"
+  },
+  {
+   "origem": 34,
+   "destino": 43,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 34,
+   "destino": 46,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 36,
+   "destino": 37,
+   "motivo": "professor"
+  },
+  {
+   "origem": 38,
+   "destino": 39,
+   "motivo": "professor"
+  },
+  {
+   "origem": 38,
+   "destino": 40,
+   "motivo": "professor"
+  },
+  {
+   "origem": 38,
+   "destino": 48,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 39,
+   "destino": 40,
+   "motivo": "professor"
+  },
+  {
+   "origem": 39,
+   "destino": 45,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 40,
+   "destino": 41,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 43,
+   "destino": 44,
+   "motivo": "professor"
+  },
+  {
+   "origem": 43,
+   "destino": 46,
+   "motivo": "perfil_pleno"
+  },
+  {
+   "origem": 45,
+   "destino": 46,
+   "motivo": "professor"
+  },
+  {
+   "origem": 45,
+   "destino": 47,
+   "motivo": "professor"
+  },
+  {
+   "origem": 46,
+   "destino": 47,
+   "motivo": "professor"
+  }
+ ]
+}
