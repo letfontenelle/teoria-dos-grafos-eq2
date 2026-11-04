@@ -42,6 +42,62 @@ def test_ordem_invalida(cliente):
     assert cliente.post("/api/grade/gerar", json={"ordem": "aleatoria"}).status_code == 400
 
 
+def test_api_gera_grade_priorizando_preferencias_e_valida_parametro_n():
+    class RepoTeste:
+        descricao = "Teste"
+
+        def carregar_dados(self):
+            faixas = [
+                ("07:10", "08:00"), ("08:00", "08:50"), ("08:50", "09:40"),
+                ("09:40", "10:30"), ("10:30", "11:20"), ("11:20", "12:10"),
+                ("12:10", "13:00"), ("13:00", "13:50"), ("13:50", "14:40"),
+                ("14:40", "15:30"), ("15:30", "16:20"), ("16:20", "17:10"),
+            ]
+            horarios = [
+                {"HOR_ID": dia * 12 + i + 1, "HOR_DIA": dia, "HOR_FAIXA": letra,
+                 "HOR_INICIO": inicio, "HOR_FIM": fim}
+                for dia in range(2, 7)
+                for i, (letra, (inicio, fim)) in enumerate(zip("ABCDEFGHIJKL", faixas))
+            ]
+            disciplina = {
+                "DIS_ID": 1, "DIS_CODIGO": "TST", "DIS_DESCRICAO": "Teste",
+                "DIS_PERIODO": 1, "DIS_CARGA_HORARIA": 30,
+            }
+            alocacao = {
+                "ALO_ID": 1, "PRO_ID": 10, "DIS_ID": 1, "PRO_NOME": "Professora",
+                "DIS_DISCIPLINA": disciplina,
+            }
+            return {
+                "professores": [{"PRO_ID": 10, "PRO_NOME": "Professora"}],
+                "disciplinas": [disciplina], "horarios": horarios, "alocacoes": [alocacao],
+            }
+
+        def carregar_grade(self, _semestre):
+            return []
+
+    main.ctx.iniciar(RepoTeste())
+    with TestClient(main.app) as c:
+        pedido = {"ordem": "dsatur", "param_N": 1, "preferencias_professores": {"10": ["2A", "2B", "2C"]}}
+        resposta = c.post("/api/grade/gerar", json=pedido)
+        assert resposta.status_code == 200
+        grade = resposta.json()
+        assert grade["origem"].endswith("(com preferências de horário)")
+        assert grade["sessoes"][0]["rotulos"] == ["2A", "2B"]
+
+        sem_n = c.post("/api/grade/gerar", json={**pedido, "param_N": None})
+        assert sem_n.status_code == 422 and "valor de N" in sem_n.json()["detail"]
+        abaixo_do_minimo = c.post(
+            "/api/grade/gerar",
+            json={**pedido, "preferencias_professores": {"10": ["2A", "2B"]}},
+        )
+        assert abaixo_do_minimo.status_code == 422 and "pelo menos 3 horários" in abaixo_do_minimo.json()["detail"]
+        apos_13 = c.post(
+            "/api/grade/gerar",
+            json={**pedido, "preferencias_professores": {"10": ["2A", "2B", "2H"]}},
+        )
+        assert apos_13.status_code == 422 and "após 13:00" in apos_13.json()["detail"]
+
+
 def test_salvar_e_carregar(cliente):
     cliente.post("/api/grade/gerar", json={"ordem": "dsatur"})
     r = cliente.post("/api/grade/salvar", json={"semestre": "2027.1"}).json()

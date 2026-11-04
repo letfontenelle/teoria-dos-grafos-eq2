@@ -55,13 +55,19 @@ class GradeEmMemoria:
 
     # ------------------------------------------------------- construção ----
     @classmethod
-    def gerar(cls, dados, ordem="dsatur"):
+    def gerar(cls, dados, ordem="dsatur", preferencias_professores=None):
         """Gera a grade com a busca gulosa (agendamento.py) na ordem escolhida."""
         if ordem not in ORDENS:
             raise ValueError(f"ordem desconhecida: {ordem!r}")
-        r = gerar_grade(dados["alocacoes"], dados["horarios"], semestre="", ordem=ordem)
+        r = gerar_grade(
+            dados["alocacoes"], dados["horarios"], semestre="", ordem=ordem,
+            preferencias_professores=preferencias_professores,
+        )
         cores = horarios_por_sessao(r["sessoes"], r["colocacao"], r["blocos"])
-        return cls(dados, r["sessoes"], cores, list(r["colocacao"]), f"Gerada: {NOMES_ORDEM[ordem]}")
+        origem = f"Gerada: {NOMES_ORDEM[ordem]}"
+        if preferencias_professores:
+            origem += " (com preferências de horário)"
+        return cls(dados, r["sessoes"], cores, list(r["colocacao"]), origem)
 
     @classmethod
     def de_linhas(cls, dados, linhas, origem):
@@ -206,4 +212,3 @@ class GradeEmMemoria:
                     vistas.add((no[0], h))
                     linhas.append({"GRA_SEMESTRE": semestre, "ALO_ID": no[0], "HOR_ID": h})
         return linhas
-

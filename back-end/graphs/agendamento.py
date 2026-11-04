@@ -147,7 +147,7 @@ def _ordenar_sessoes(sessoes, G, ordem):
 
 # ------------------------------------------------------- busca gulosa -------
 def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
-                    turnos=TURNOS_PADRAO):
+                    turnos=TURNOS_PADRAO, preferencias_professores=None):
     """
     Busca gulosa. Para cada sessão (na ordem escolhida), descarta as posições
     em que já há uma sessão em conflito e escolhe uma das que sobraram.
@@ -173,6 +173,7 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
     ordem_blocos = _ordenar_blocos(blocos, espalhar)
     posicao = {b["id"]: i for i, b in enumerate(ordem_blocos)}
     por_dia_pos = {(b["ordem_dia"], b["pos"]): b for b in blocos}
+    preferencias_professores = preferencias_professores or {}
 
     def posicoes(span):
         """Todas as formas de colocar uma sessão que ocupa `span` blocos seguidos."""
@@ -219,6 +220,20 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
                 f"A sessão {no} (professor {_nome_professor(s)}) não cabe em nenhum dos "
                 f"{len(blocos)} blocos: todos têm algum conflito."
             )
+        preferencias = preferencias_professores.get(s.get("PRO_ID"), set())
+        if preferencias:
+            def horarios_da_operacao(op):
+                horarios = [h for b in op for h in b["ho_ids"]]
+                return horarios[:s["SLOTS"]]
+
+            melhor_aderencia = max(
+                len(preferencias.intersection(horarios_da_operacao(op))) for op in livres
+            )
+            if melhor_aderencia:
+                livres = [
+                    op for op in livres
+                    if len(preferencias.intersection(horarios_da_operacao(op))) == melhor_aderencia
+                ]
         if espalhar:
             for letras in turnos:
                 do_turno = [op for op in livres if op[0]["letra"] in letras]
@@ -318,7 +333,7 @@ def construir_grafo_sessoes(sessoes):
 
 def gerar_grade(alocacoes, horarios, semestre, duracoes=None, duracao_padrao=DURACAO_PADRAO,
                 ordem="alfabetica", espalhar=True, letras_permitidas=LETRAS,
-                turnos=TURNOS_PADRAO):
+                turnos=TURNOS_PADRAO, preferencias_professores=None):
     """
     Fluxo completo, sem banco de dados:
       alocações -> sessões -> grafo -> busca gulosa -> linhas da grade -> validação.
@@ -332,7 +347,10 @@ def gerar_grade(alocacoes, horarios, semestre, duracoes=None, duracao_padrao=DUR
     sessoes = expandir_sessoes(alocacoes, duracoes, duracao_padrao)
     G = construir_grafo_sessoes(sessoes)
 
-    colocacao = colocar_sessoes(G, sessoes, blocos, ordem=ordem, espalhar=espalhar, turnos=turnos)
+    colocacao = colocar_sessoes(
+        G, sessoes, blocos, ordem=ordem, espalhar=espalhar, turnos=turnos,
+        preferencias_professores=preferencias_professores,
+    )
     linhas = gerar_linhas_grade(sessoes, colocacao, blocos, semestre)
     return {
         "linhas": linhas,

@@ -132,6 +132,15 @@ def test_manha_primeiro_quando_cabe():
     assert {b["letra"] for b in r["blocos"] if b["id"] in usados} <= {"A", "B", "C"}
 
 
+def test_preferencia_do_professor_prioriza_os_horarios_selecionados():
+    r = gerar_grade(
+        [alo(1, 10, 1)], horarios_semana(), "2026.2", duracoes={1: 2},
+        preferencias_professores={10: {13, 14, 15}},
+    )
+    assert slots(r, 1) == {13, 14}
+    assert r["violacoes"] == []
+
+
 def test_tarde_so_quando_nao_cabe_na_manha():
     # 8 aulas do mesmo professor = 16 sessões que se bloqueiam; a manhã tem 15 blocos.
     r = gerar_grade([alo(i, 1, i) for i in range(1, 9)], horarios_semana(), "2026.2")

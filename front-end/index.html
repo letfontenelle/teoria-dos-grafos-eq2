@@ -145,7 +145,7 @@
             <span>Mínimo de horários excedentes (N)</span>
             <input id="inp-n-excedentes" type="number" min="1" step="1" placeholder="Defina N">
           </label>
-          <button class="botao botao-primario" type="button">Salvar parâmetro</button>
+          <button id="btn-salvar-parametro" class="botao botao-primario" type="button">Salvar parâmetro</button>
         </div>
       </div>
 
@@ -177,7 +177,7 @@
             </div>
             <div id="grade-preferencias" class="grade-preferencias" aria-label="Horários preferidos"></div>
             <div id="resumo-preferencias" class="nota" aria-live="polite"></div>
-            <button class="botao botao-primario" type="button">Concluir seleção</button>
+            <button id="btn-salvar-preferencias" class="botao botao-primario" type="button">Concluir seleção</button>
           </div>
           <div class="tabela-rolagem">
             <table id="tabela-restricoes" class="tabela">
@@ -187,7 +187,7 @@
           </div>
         </div>
       </div>
-      <p class="dica">Protótipo visual: os formulários ainda não enviam nem persistem dados.</p>
+      <p class="dica">As preferências são aplicadas ao gerar a grade. O cadastro de novas alocações ainda é apenas visual.</p>
     </section>
   </div>
 
