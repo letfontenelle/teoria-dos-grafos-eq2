@@ -1,51 +1,45 @@
-# Back-end: geração da grade horária
+# Projeto de Teoria dos Grafos - Equipe 02
 
-Monta a grade de horários dos professores **sem choques**, com grafos e coloração. Com os dados reais de 2026.2 (48 alocações, 10 períodos), gera tudo de uma vez com 0 choques.
+## Modelagem do Grafo para Montagem da Grade Horária
 
-## Como funciona
+Este repositório contém a modelagem em grafos e os algoritmos desenvolvidos para a resolução do problema de agendamento de horários (Perfil Curricular e Pleno).
 
-- Cada aula vira **sessões** de 2 faixas (um bloco); uma aula de 3 faixas vira uma sessão contínua. Número de faixas por semana = faixas que a aula tem na grade atual (a carga horária, faixas × 15h, não está no banco).
-- O **grafo** liga as sessões que não podem ser juntas: mesmo professor, mesmo período ou mesma disciplina. (O código aceita a exceção de duas eletivas do mesmo período, mas o banco ainda não diz quais disciplinas são eletivas.)
-- A **busca gulosa** coloca cada sessão no primeiro bloco livre de conflito. A próxima sessão é escolhida pela ordem alfabética do professor, pelo maior grau ou pelo **DSATUR** (maior saturação primeiro).
-- A semana tem 6 blocos por dia, de 2 faixas cada. Em código interno são A a F; na tela, aparecem no padrão da POLI: AB (07:10), CD (08:50), EF (10:30), GH (12:10), IJ (13:50) e KL (15:30).
-- **Manhã primeiro**: a tarde só entra se não couber.
+---
 
-## Arquivos
+## 1. Mapeamento do Banco de Dados para o Grafo
 
-- `main.py`: API FastAPI e servidor do front-end.
-- `database/` (equipe de dados): conexão com o Supabase (`connection/connect.py`), planilha `data/modelo_grade_professor.xlsx` e carga no Supabase (`data_ingestion/data_ingestion.py`).
-- `graphs/dados.py`: lê as tabelas do Supabase (`PRO_`, `DI_`, `HO_`, `ALO_`, `GRA_`) e grava as grades salvas; traduz para o formato do grafo.
-- `graphs/graph.py`: monta o grafo de conflitos das alocações e exporta em JSON.
-- `graphs/coloracao.py`: guloso e DSATUR implementados pela equipe.
-- `graphs/agendamento.py`: divide as aulas em sessões, faz a busca gulosa e valida os choques.
-- `graphs/grade.py`: grafo <-> grade <-> banco (coloração parcial, mover aula, salvar).
-- `demo_grade.py`: mostra a grade no terminal, sem banco de dados.
-- `testes/`: 59 testes (pytest), com a planilha e um Supabase simulado em memória.
+O problema foi mapeado para um **Grafo de Conflitos para Coloração** $G = (V, E)$:
 
-## Como rodar
+* **Vértices (Nós - $V$):** Representam os registros de aulas a serem alocadas (tabela `ALO_ALOCACAO`).
+  * Cada nó possui os atributos `PRO_ID` (Professor) e `DI_PERIODO` (Período/Perfil Curricular da disciplina via `DI_DISCIPLINA`).
+* **Arestas (Incompatibilidades / Conflitos - $E$):** Conectam duas alocações sempre que houver restrição de horário simultâneo:
+  1. **Conflito de Professor:** Um professor não pode ministrar duas aulas no mesmo horário.
+  2. **Conflito de Perfil Curricular / Pleno:** Disciplinas do mesmo período não podem ter choque de horário para o aluno pleno.
+* **Cores (Slots de Horário):** Representam os horários disponíveis (tabela `HO_HORARIO`), mapeados de 0 a 6 (7 slots).
 
-Precisa de Python 3.10 ou mais novo. De dentro de `back-end`:
+---
 
-```bash
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn main:app --reload       # abre em http://localhost:8000
-```
+## 2. Estratégia Algorítmica e Validação Matemática
 
-Outros comandos:
+Para responder com precisão tanto aos requisitos teóricos da disciplina quanto às restrições operacionais do sistema, o projeto adota duas abordagens complementares:
 
-```bash
-python -m pytest testes -v                       # testes
-python database/data_ingestion/data_ingestion.py # carga da planilha no Supabase (pula tabelas com dados)
-python graphs/graph.py                           # exporta graph.json e desenha o grafo
-python demo_grade.py 7 --dsatur                  # grade do 7º período no terminal
-```
+### 2.1. Modelo Teórico e Validação Limite (DSATUR)
+Para análise gráfica e determinação do número cromático mínimo, utilizou-se a heurística **DSATUR (Degree of Saturation)** via NetworkX:
+* **Resultado de Cores:** O DSATUR encontra uma solução válida utilizando **7 cores** (slots de tempo).
+* **Prova Teórica:** A maior clique ($\omega(G)$) identificada no grafo possui tamanho **7** (grupo de 7 aulas com conflitos mútuos). Como $\chi(G) \ge \omega(G)$, o resultado de 7 cores garante o limite inferior ótimo teórico para o conjunto de dados.
 
-A API precisa do `.env` com as chaves do Supabase: copie `.env.example` (na raiz do repositório) para `.env` e preencha. Salvar uma grade grava na `GRA_GRADE_HORARIA` com outro semestre; a grade 2026.2 (carga da equipe de dados) não é sobrescrita.
+### 2.2. Geração Operacional com Preferências (Iteração 09)
+Para atender às regras de negócio da instituição (Iteração 09), a persistência da grade adota uma **Busca Gulosa Priorizada**:
+* **Priorização por Preferência:** Tenta alocar a aula prioritariamente nos slots de preferência informados pelo professor (`PRO_ID`).
+* **Garantia de Viabilidade:** Caso a preferência gere conflito com a vizinhança no grafo, o algoritmo aplica o *fallback* guloso para a menor cor viável sem choques.
+* **Parâmetro $N$ de Excedentes:** Suporta a alocação ajustada considerando o parâmetro $N$ de horários excedentes sem violar o limite cronológico.
 
-## Falta (decisões para validar com a professora)
+---
 
-- Salas: o modelo ainda não tem salas (itens opcionais 10, 16 e 17).
-- Uso do bloco GH (12:10–13:50), que atravessa o almoço. Hoje é evitado pela preferência de manhã.
-- Dados que ainda não estão no banco (equipe de dados): carga horária, quais disciplinas são eletivas e Redes de Computadores 2. Sem a marcação de eletiva, a grade atual aparece com 6 choques entre disciplinas do mesmo período.
+## 3. Capacidades de Instanciação do Grafo (`graph.py`)
+
+O módulo `graphs/graph.py` foi atualizado para carregar a estrutura do grafo em memória sob múltiplos cenários:
+
+1. **Instanciação a partir de Alocações Brutas (`construir_grafo_conflitos`):** Consome os dados da tabela `ALO_ALOCACAO` com junção em `DI_DISCIPLINA` e constrói o grafo de incompatibilidades antes do agendamento.
+2. **Execução com Preferências (`resolver_coloracao_com_preferencias`):** Executa o agendamento guloso priorizando as janelas desejadas pelos professores e validando contra a estrutura de vizinhança.
+3. **Instanciação do Resultado Salvo no BD (`construir_grafo_da_grade_salva`):** Carrega os registros já processados da tabela `GRA_GRADE_HORARIA`, mapeando os vértices com seus respectivos horários (`HO_ID`) para validação e visualização em memória.
