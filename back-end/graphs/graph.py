@@ -43,6 +43,11 @@ def dsatur(G):
     return cores
 
 
+def resolver_coloracao_horarios(G):
+    """Mantém a interface anterior para resolver a coloração por DSATUR."""
+    return dsatur(G)
+
+
 def construir_grafo_conflitos(alocacoes):
     """
     Constrói o grafo de conflitos para a Grade Horária.
