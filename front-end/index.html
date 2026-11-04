@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo.css?v=4">
+  <link rel="stylesheet" href="css/estilo.css?v=5">
 </head>
 <body>
   <div class="pagina">
@@ -28,6 +28,7 @@
       <button class="aba" role="tab" data-aba="gerar" aria-selected="false">Gerar grade</button>
       <button class="aba" role="tab" data-aba="grafo" aria-selected="false">Grafo de conflitos</button>
       <button class="aba" role="tab" data-aba="dados" aria-selected="false">Dados e carga</button>
+      <button class="aba" role="tab" data-aba="cadastros" aria-selected="false">Alocações e restrições</button>
     </nav>
 
     <!-- =============================================================== GRADE -->
@@ -133,6 +134,61 @@
         <div class="tabela-rolagem"><table id="tabela-disciplinas" class="tabela"></table></div>
       </div>
     </section>
+
+    <!-- =========================================================== CADASTROS -->
+    <section id="aba-cadastros" class="painel-aba" role="tabpanel" hidden>
+      <div class="cartao">
+        <h2>Parâmetro da coordenação</h2>
+        <p class="texto">N define quantos horários preferidos devem exceder os horários necessários para cumprir as alocações do professor.</p>
+        <div id="form-parametro" class="linha cadastro-form">
+          <label class="campo campo-largo" for="inp-n-excedentes">
+            <span>Mínimo de horários excedentes (N)</span>
+            <input id="inp-n-excedentes" type="number" min="1" step="1" placeholder="Defina N">
+          </label>
+          <button class="botao botao-primario" type="button">Salvar parâmetro</button>
+        </div>
+      </div>
+
+      <div class="colunas">
+        <div class="cartao pilha">
+          <h2>Cadastro de alocação</h2>
+          <p class="texto">Vincule um professor a uma disciplina para definir sua alocação de aulas.</p>
+          <div id="form-alocacao" class="pilha cadastro-form">
+            <label class="campo campo-largo"><span>Professor</span><select id="sel-alocacao-professor"></select></label>
+            <label class="campo campo-largo"><span>Disciplina</span><select id="sel-alocacao-disciplina"></select></label>
+            <button class="botao botao-primario" type="button">Cadastrar alocação</button>
+          </div>
+          <div class="tabela-rolagem">
+            <table id="tabela-alocacoes" class="tabela">
+              <thead><tr><th>Professor</th><th>Disciplina</th><th>Ação</th></tr></thead>
+              <tbody><tr><td class="cadastro-vazio" colspan="3">As alocações cadastradas serão exibidas aqui.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="cartao pilha">
+          <h2>Restrição adicional: preferência de horário</h2>
+          <p class="texto">Opcional. Marque na grade semanal os horários em que prefere dar aula. Só é possível escolher faixas que terminam até 13:00.</p>
+          <div id="form-restricao" class="pilha cadastro-form">
+            <label class="campo campo-largo"><span>Professor</span><select id="sel-restricao-professor"></select></label>
+            <div class="barra-preferencias">
+              <span class="texto">Clique nos horários para marcar ou desmarcar.</span>
+              <button id="btn-limpar-preferencias" class="botao" type="button">Limpar seleção</button>
+            </div>
+            <div id="grade-preferencias" class="grade-preferencias" aria-label="Horários preferidos"></div>
+            <div id="resumo-preferencias" class="nota" aria-live="polite"></div>
+            <button class="botao botao-primario" type="button">Concluir seleção</button>
+          </div>
+          <div class="tabela-rolagem">
+            <table id="tabela-restricoes" class="tabela">
+              <thead><tr><th>Professor</th><th>Horários preferidos</th><th>Ação</th></tr></thead>
+              <tbody><tr><td class="cadastro-vazio" colspan="3">As preferências cadastradas serão exibidas aqui.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="dica">Protótipo visual: os formulários ainda não enviam nem persistem dados.</p>
+    </section>
   </div>
 
   <!-- Painel de detalhe da aula -->
@@ -145,6 +201,6 @@
   </aside>
 
   <div id="aviso" class="aviso" role="status" hidden></div>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

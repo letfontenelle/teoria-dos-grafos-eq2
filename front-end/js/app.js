@@ -38,6 +38,8 @@
     periodoGrafo: 5,
     professorGrafo: null,
     grafo: null,
+    preferenciasPorProfessor: new Map(),
+    horariosPreferidos: new Set(),
   };
 
   const $ = (sel, raiz) => (raiz || document).querySelector(sel);
@@ -605,6 +607,105 @@
     $("#sel-professor").value = $("#sel-professor-grafo").value = eliane.PRO_ID;
     $("#sel-ordem").replaceChildren(...st.dados.ordens.map(o => el("option", { value: o.valor }, o.nome)));
     $("#sel-ordem").value = "dsatur";
+    preencherControlesCadastro();
+  }
+
+  function preencherControlesCadastro() {
+    const professores = [...st.dados.professores].sort((a, b) => a.PRO_NOME.localeCompare(b.PRO_NOME));
+    const opcoesProfessores = [
+      el("option", { value: "", disabled: true, selected: true }, "Selecione um professor"),
+      ...professores.map(p => el("option", { value: p.PRO_ID }, titulo(p.PRO_NOME))),
+    ];
+    for (const id of ["#sel-alocacao-professor", "#sel-restricao-professor"]) {
+      $(id).replaceChildren(...opcoesProfessores.map(o => o.cloneNode(true)));
+    }
+
+    const disciplinas = [...st.dados.disciplinas].sort((a, b) => a.DIS_CODIGO.localeCompare(b.DIS_CODIGO));
+    $("#sel-alocacao-disciplina").replaceChildren(
+      el("option", { value: "", disabled: true, selected: true }, "Selecione uma disciplina"),
+      ...disciplinas.map(d => el("option", { value: d.DIS_ID }, `${d.DIS_CODIGO} · ${titulo(d.DIS_DESCRICAO)}`)));
+
+    renderGradePreferencias();
+  }
+
+  function horariosAte13() {
+    return st.dados.faixas.filter(f => f.fim <= "13:00");
+  }
+
+  function renderGradePreferencias() {
+    const faixas = horariosAte13();
+    const grade = $("#grade-preferencias");
+    const cabecalho = el("div", { class: "cabecalho-grade-preferencias" },
+      el("span", { class: "rotulo-horario" }, "Horário"),
+      st.dados.dias.map(dia => el("div", { class: "dia-preferencia" },
+        el("span", {}, dia.nome),
+        el("button", {
+          class: "botao botao-icone",
+          type: "button",
+          "data-selecionar-dia": dia.dia,
+          "aria-label": `Selecionar todos os horários de ${dia.nome}`,
+          title: `Selecionar todos de ${dia.nome}`,
+        }, "Todos"))));
+    const linhas = faixas.map(f => el("div", { class: "linha-grade-preferencias" },
+      el("span", { class: "rotulo-horario" }, `${f.inicio}–${f.fim}`),
+      st.dados.dias.map(dia => {
+        const valor = `${dia.dia}${f.faixa}`;
+        const selecionado = st.horariosPreferidos.has(valor);
+        return el("button", {
+          class: "celula-preferencia" + (selecionado ? " selecionada" : ""),
+          type: "button",
+          "data-horario": valor,
+          "aria-pressed": String(selecionado),
+          "aria-label": `${dia.nome}, ${f.inicio} a ${f.fim}${selecionado ? ", selecionado" : ""}`,
+          title: `${dia.nome} · ${f.inicio}–${f.fim}`,
+        }, selecionado ? "✓" : "");
+      })));
+    grade.replaceChildren(cabecalho, ...linhas);
+    renderResumoPreferencias();
+  }
+
+  function renderResumoPreferencias() {
+    const quantidade = st.horariosPreferidos.size;
+    const n = $("#inp-n-excedentes").value.trim();
+    $("#resumo-preferencias").textContent =
+      `${quantidade} horário${quantidade === 1 ? "" : "s"} selecionado${quantidade === 1 ? "" : "s"} até 13:00. ` +
+      `O mínimo exigido será calculado com base nas alocações do professor + N${n ? ` (${n})` : ""}.`;
+  }
+
+  function ligarEventosPreferencias() {
+    $("#grade-preferencias").addEventListener("click", e => {
+      const botaoHorario = e.target.closest("[data-horario]");
+      if (botaoHorario) {
+        const horario = botaoHorario.dataset.horario;
+        if (st.horariosPreferidos.has(horario)) st.horariosPreferidos.delete(horario);
+        else st.horariosPreferidos.add(horario);
+        renderGradePreferencias();
+        return;
+      }
+
+      const botaoDia = e.target.closest("[data-selecionar-dia]");
+      if (!botaoDia) return;
+      const dia = st.dados.dias.find(d => d.dia === +botaoDia.dataset.selecionarDia);
+      if (!dia) return;
+      for (const f of horariosAte13()) st.horariosPreferidos.add(`${dia.dia}${f.faixa}`);
+      renderGradePreferencias();
+    });
+
+    $("#btn-limpar-preferencias").addEventListener("click", () => {
+      st.horariosPreferidos.clear();
+      renderGradePreferencias();
+    });
+
+    $("#sel-restricao-professor").addEventListener("change", e => {
+      const anterior = $("#sel-restricao-professor").dataset.professor;
+      if (anterior) st.preferenciasPorProfessor.set(anterior, new Set(st.horariosPreferidos));
+      const atual = e.target.value;
+      st.horariosPreferidos = new Set(st.preferenciasPorProfessor.get(atual) || []);
+      e.target.dataset.professor = atual;
+      renderGradePreferencias();
+    });
+
+    $("#inp-n-excedentes").addEventListener("input", renderResumoPreferencias);
   }
 
   function ligarEventos() {
@@ -626,6 +727,7 @@
     $("#btn-passo-menos").addEventListener("click", () => { parar(); irParaPasso(st.passo - 1); });
     $("#btn-passo-mais").addEventListener("click", () => { parar(); irParaPasso(st.passo + 1); });
     $("#rng-passo").addEventListener("input", e => { parar(); irParaPasso(+e.target.value); });
+    ligarEventosPreferencias();
   }
 
   async function iniciar() {
@@ -642,7 +744,7 @@
     renderSemestres();
     await atualizarGerar(false);
     const aba = location.hash.slice(1);
-    if (["grade", "gerar", "grafo", "dados"].includes(aba)) trocarAba(aba);
+    if (["grade", "gerar", "grafo", "dados", "cadastros"].includes(aba)) trocarAba(aba);
   }
 
   iniciar();
