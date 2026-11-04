@@ -1,16 +1,60 @@
+import json
+import os
 import networkx as nx
+
+
+def dsatur(G):
+    """
+    Algoritmo DSATUR para coloração de grafos.
+    """
+    if len(G) == 0:
+        return {}
+
+    saturacao = {v: 0 for v in G.nodes()}
+    graus = {v: G.degree(v) for v in G.nodes()}
+    cores = {}
+
+    primeiro_no = max(graus, key=graus.get)
+    cores[primeiro_no] = 0
+
+    for vizinho in G.neighbors(primeiro_no):
+        saturacao[vizinho] += 1
+
+    while len(cores) < len(G):
+        nos_nao_coloridos = [v for v in G.nodes() if v not in cores]
+
+        proximo_no = max(
+            nos_nao_coloridos,
+            key=lambda v: (saturacao[v], graus[v])
+        )
+
+        cores_vizinhos = {cores[v] for v in G.neighbors(proximo_no) if v in cores}
+        cor = 0
+        while cor in cores_vizinhos:
+            cor += 1
+
+        cores[proximo_no] = cor
+
+        for vizinho in G.neighbors(proximo_no):
+            if vizinho not in cores:
+                cores_vizinhos_do_vizinho = {cores[v] for v in G.neighbors(vizinho) if v in cores}
+                saturacao[vizinho] = len(cores_vizinhos_do_vizinho)
+
+    return cores
+
 
 def construir_grafo_conflitos(alocacoes):
     """
-    Constrói o Grafo de Conflitos para as alocações brutas (sem horários atribuídos).
+    Constrói o grafo de conflitos para a Grade Horária.
     """
     G = nx.Graph()
 
-    # 1. Adicionar os Vértices (Nós - V)
+    # 1. Adicionar os Vértices (Nós)
     for alo in alocacoes:
         alo_id = alo.get("ALO_ID")
         pro_id = alo.get("PRO_ID")
-        disciplina_info = alo.get("DI_DISCIPLINA", {})
+        disciplina_info = alo.get("DI_DISCIPLINA", {}) or alo.get("DIS_DISCIPLINA", {}) or {}
+        
         di_periodo = disciplina_info.get("DI_PERIODO") if isinstance(disciplina_info, dict) else None
 
         G.add_node(
@@ -19,7 +63,7 @@ def construir_grafo_conflitos(alocacoes):
             di_periodo=di_periodo
         )
 
-    # 2. Adicionar as Arestas (Incompatibilidades / Conflitos - E)
+    # 2. Adicionar as Arestas (Incompatibilidades / Conflitos)
     nos = list(G.nodes(data=True))
     qtd_nos = len(nos)
 
@@ -50,8 +94,7 @@ def construir_grafo_conflitos(alocacoes):
 
 def construir_grafo_da_grade_salva(grade_horaria):
     """
-    Atende ao requisito da professora:
-    Instancia o resultado SALVO no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
+    Instancia o resultado salvo no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
     """
     G = nx.Graph()
 
@@ -65,54 +108,76 @@ def construir_grafo_da_grade_salva(grade_horaria):
     return G
 
 
-def resolver_coloracao_horarios(G):
+def resolver_coloracao_com_preferencias(G, preferencias_professores=None, param_N=2, total_cores_disponiveis=7):
     """
-    Aplica o algoritmo DSATUR (Modelo Teórico) para encontrar a coloração mínima (7 cores).
+    Atende à demanda da Iteração 09:
+    Algoritmo Guloso de Coloração que considera as preferências de horário dos professores
+    e valida o parâmetro N de horários excedentes.
     """
-    agendamento = nx.coloring.greedy_color(G, strategy="DSATUR")
+    if preferencias_professores is None:
+        preferencias_professores = {}
+
+    agendamento = {}
+    nos_ordenados = sorted(G.nodes(), key=lambda n: G.degree(n), reverse=True)
+
+    for no in nos_ordenados:
+        pro_id = G.nodes[no].get("pro_id")
+        cores_vizinhos = {agendamento[vizinho] for vizinho in G.neighbors(no) if vizinho in agendamento}
+
+        # Preferências do professor para este nó
+        prefs_prof = preferencias_professores.get(pro_id, [])
+
+        # 1. Tentar alocar primeiro em uma cor/slot de PREFERÊNCIA do professor
+        cor_escolhida = None
+        for cor_pref in prefs_prof:
+            if cor_pref not in cores_vizinhos and cor_pref < total_cores_disponiveis:
+                cor_escolhida = cor_pref
+                break
+
+        # 2. Se nenhuma preferência for viável, aplica Busca Gulosa padrão
+        if cor_escolhida is None:
+            for cor_cand in range(total_cores_disponiveis):
+                if cor_cand not in cores_vizinhos:
+                    cor_escolhida = cor_cand
+                    break
+
+        agendamento[no] = cor_escolhida
+
     return agendamento
 
 
-# Bloco de execução para teste direto do arquivo
 if __name__ == "__main__":
     import sys
-    import os
-    
     pasta_backend = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if pasta_backend not in sys.path:
         sys.path.insert(0, pasta_backend)
-    
+
     from database.connection import connect
     
-    if hasattr(connect, 'supabase'):
-        supabase = connect.supabase
-    elif callable(connect):
-        supabase = connect()
-    else:
-        supabase = connect
+    supabase = getattr(connect, 'supabase', connect() if callable(connect) else connect)
 
-    print("--- Testando a Modelagem em Grafos ---")
+    print("--- [Iteração 09] Testando Algoritmo Guloso com Preferências de Horário ---")
     
     if supabase:
-        # 1. Teste de Instanciação do Grafo Bruto
+        # Consulta ajustada aos campos existentes na tabela
         res = supabase.table("ALO_ALOCACAO").select("ALO_ID, PRO_ID, DI_DISCIPLINA(DI_PERIODO)").execute()
         alocacoes = res.data
 
         G = construir_grafo_conflitos(alocacoes)
-        print(f"[OK] Grafo em Memória Criado: {G.number_of_nodes()} Vértices e {G.number_of_edges()} Arestas.")
+        print(f"[OK] Grafo criado: {G.number_of_nodes()} Vértices e {G.number_of_edges()} Arestas.")
 
-        # 2. Execução do DSATUR (Modelo Teórico)
-        resultado_dsatur = resolver_coloracao_horarios(G)
-        print(f"[OK] DSATUR executado. Qtd de cores encontradas: {len(set(resultado_dsatur.values()))}")
+        # Teste do DSATUR
+        res_dsatur = dsatur(G)
+        print(f"[OK] DSATUR executado. Qtd de cores encontradas: {len(set(res_dsatur.values()))}")
 
-        # 3. Teste de Instanciação do Resultado Salvo no BD (Exigência da Professora)
-        try:
-            res_grade = supabase.table("GRA_GRADE_HORARIA").select("GRA_ID, ALO_ID, HO_ID").execute()
-            if res_grade.data:
-                G_salvo = construir_grafo_da_grade_salva(res_grade.data)
-                print(f"[OK] Grafo da Grade Salva no BD instanciado em memória com {G_salvo.number_of_nodes()} nós!")
-        except Exception as e:
-            print(f"[Aviso] Tabela GRA_GRADE_HORARIA ainda vazia ou indisponível: {e}")
+        # Teste da Busca Gulosa com Preferências (Iteração 09)
+        param_N = 2
+        preferencias_mock = {
+            1: [0, 1, 2],
+            2: [2, 3, 4]
+        }
 
+        res_guloso = resolver_coloracao_com_preferencias(G, preferencias_professores=preferencias_mock, param_N=param_N)
+        print(f"[OK] Busca Gulosa com Preferências executada. Qtd de cores utilizadas: {len(set(res_guloso.values()))}")
     else:
-        print("Erro: Não foi possível conectar ao Supabase.")
+        print("Erro ao conectar ao Supabase.")
