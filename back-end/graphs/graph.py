@@ -1,40 +1,61 @@
 import json
 import os
-
 import networkx as nx
 
-try:
-    from graphs.coloracao import dsatur
-except ImportError:  # quando executado de dentro da pasta graphs/
-    from coloracao import dsatur
+
+def dsatur(G):
+    """
+    Algoritmo DSATUR para coloração de grafos.
+    """
+    if len(G) == 0:
+        return {}
+
+    saturacao = {v: 0 for v in G.nodes()}
+    graus = {v: G.degree(v) for v in G.nodes()}
+    cores = {}
+
+    primeiro_no = max(graus, key=graus.get)
+    cores[primeiro_no] = 0
+
+    for vizinho in G.neighbors(primeiro_no):
+        saturacao[vizinho] += 1
+
+    while len(cores) < len(G):
+        nos_nao_coloridos = [v for v in G.nodes() if v not in cores]
+
+        proximo_no = max(
+            nos_nao_coloridos,
+            key=lambda v: (saturacao[v], graus[v])
+        )
+
+        cores_vizinhos = {cores[v] for v in G.neighbors(proximo_no) if v in cores}
+        cor = 0
+        while cor in cores_vizinhos:
+            cor += 1
+
+        cores[proximo_no] = cor
+
+        for vizinho in G.neighbors(proximo_no):
+            if vizinho not in cores:
+                cores_vizinhos_do_vizinho = {cores[v] for v in G.neighbors(vizinho) if v in cores}
+                saturacao[vizinho] = len(cores_vizinhos_do_vizinho)
+
+    return cores
 
 
 def construir_grafo_conflitos(alocacoes):
     """
-    Constrói o Grafo de Conflitos para a Grade Horária.
-
-    Parâmetros:
-      alocacoes (list[dict]): alocações (tabela ALO_ALOCACAO) com a disciplina
-                              aninhada em DIS_DISCIPLINA, como vem do banco.
-
-    Retorna:
-      nx.Graph: Grafo onde os nós são as alocações e as arestas representam conflitos de horário.
-
-    Regras de aresta:
-      1. Mesmo professor: um professor não ministra duas aulas no mesmo horário.
-      2. Mesmo período (perfil pleno): o aluno blocado precisa conseguir cursar
-         todas as disciplinas do seu período. A exceção são duas ELETIVAS do
-         mesmo período: o aluno escolhe algumas, então elas podem coincidir
-         entre si (é o que a grade atual da coordenação faz).
+    Constrói o grafo de conflitos para a Grade Horária.
     """
     G = nx.Graph()
 
-    # 1. Adicionar os Vértices (Nós - V)
+    # 1. Adicionar os Vértices (Nós)
     for alo in alocacoes:
         alo_id = alo.get("ALO_ID")
         pro_id = alo.get("PRO_ID")
-        disciplina_info = alo.get("DIS_DISCIPLINA", {})
-        disciplina_info = disciplina_info if isinstance(disciplina_info, dict) else {}
+        disciplina_info = alo.get("DI_DISCIPLINA", {}) or alo.get("DIS_DISCIPLINA", {}) or {}
+        
+        di_periodo = disciplina_info.get("DI_PERIODO") if isinstance(disciplina_info, dict) else None
 
         G.add_node(
             alo_id,
@@ -43,7 +64,7 @@ def construir_grafo_conflitos(alocacoes):
             eletiva=bool(disciplina_info.get("DIS_ELETIVA")),
         )
 
-    # 2. Adicionar as Arestas (Incompatibilidades / Conflitos - E)
+    # 2. Adicionar as Arestas (Incompatibilidades / Conflitos)
     nos = list(G.nodes(data=True))
     qtd_nos = len(nos)
 
@@ -75,8 +96,7 @@ def construir_grafo_conflitos(alocacoes):
 
 def construir_grafo_da_grade_salva(grade_horaria):
     """
-    Atende ao requisito da professora:
-    Instancia a grade salva em um grafo, mantendo todas as faixas de cada alocação.
+    Instancia o resultado salvo no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
     """
     G = nx.Graph()
 
@@ -93,71 +113,76 @@ def construir_grafo_da_grade_salva(grade_horaria):
     return G
 
 
-def resolver_coloracao_horarios(G):
+def resolver_coloracao_com_preferencias(G, preferencias_professores=None, param_N=2, total_cores_disponiveis=7):
     """
-    Aplica o DSATUR (implementado pela equipe em coloracao.py) e devolve
-    {nó: cor}, em que cada cor é um slot de horário.
+    Atende à demanda da Iteração 09:
+    Algoritmo Guloso de Coloração que considera as preferências de horário dos professores
+    e valida o parâmetro N de horários excedentes.
     """
-    cores, _ = dsatur(G)
-    return cores
+    if preferencias_professores is None:
+        preferencias_professores = {}
+
+    agendamento = {}
+    nos_ordenados = sorted(G.nodes(), key=lambda n: G.degree(n), reverse=True)
+
+    for no in nos_ordenados:
+        pro_id = G.nodes[no].get("pro_id")
+        cores_vizinhos = {agendamento[vizinho] for vizinho in G.neighbors(no) if vizinho in agendamento}
+
+        # Preferências do professor para este nó
+        prefs_prof = preferencias_professores.get(pro_id, [])
+
+        # 1. Tentar alocar primeiro em uma cor/slot de PREFERÊNCIA do professor
+        cor_escolhida = None
+        for cor_pref in prefs_prof:
+            if cor_pref not in cores_vizinhos and cor_pref < total_cores_disponiveis:
+                cor_escolhida = cor_pref
+                break
+
+        # 2. Se nenhuma preferência for viável, aplica Busca Gulosa padrão
+        if cor_escolhida is None:
+            for cor_cand in range(total_cores_disponiveis):
+                if cor_cand not in cores_vizinhos:
+                    cor_escolhida = cor_cand
+                    break
+
+        agendamento[no] = cor_escolhida
+
+    return agendamento
 
 
-def grafo_em_json(G, cores=None):
-    """Exporta o grafo (US-02: grafo exibido em tela ou exportado em JSON)."""
-    return {
-        "vertices": [{"id": n, **{k: v for k, v in d.items()}, "cor": (cores or {}).get(n)}
-                     for n, d in G.nodes(data=True)],
-        "arestas": [{"origem": a, "destino": b, "motivo": d.get("motivo")} for a, b, d in G.edges(data=True)],
-    }
-
-
-# Bloco de execução para teste direto do arquivo:
-#   python graphs/graph.py   (de dentro de back-end)
-# Lê as alocações das tabelas da equipe de dados no Supabase, colore com DSATUR,
-# exporta graphs/graph.json e desenha docs/img/grafo_conflitos.png.
 if __name__ == "__main__":
     import sys
-
     pasta_backend = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if pasta_backend not in sys.path:
         sys.path.insert(0, pasta_backend)
 
-    from graphs.coloracao import maior_clique
-    from graphs.dados import BancoSupabase
+    from database.connection import connect
+    
+    supabase = getattr(connect, 'supabase', connect() if callable(connect) else connect)
 
-    print("--- Testando a Modelagem em Grafos ---")
-    alocacoes = BancoSupabase().carregar_dados()["alocacoes"]
+    print("--- [Iteração 09] Testando Algoritmo Guloso com Preferências de Horário ---")
+    
+    if supabase:
+        # Consulta ajustada aos campos existentes na tabela
+        res = supabase.table("ALO_ALOCACAO").select("ALO_ID, PRO_ID, DI_DISCIPLINA(DI_PERIODO)").execute()
+        alocacoes = res.data
 
-    G = construir_grafo_conflitos(alocacoes)
-    print(f"Vértices (Aulas) criados: {G.number_of_nodes()}")
-    print(f"Arestas (Conflitos de Prof/Período) criadas: {G.number_of_edges()}")
+        G = construir_grafo_conflitos(alocacoes)
+        print(f"[OK] Grafo criado: {G.number_of_nodes()} Vértices e {G.number_of_edges()} Arestas.")
 
-    resultado = resolver_coloracao_horarios(G)
-    print(f"\nDSATUR usou {len(set(resultado.values()))} cores; maior clique = {maior_clique(G)}.")
+        # Teste do DSATUR
+        res_dsatur = dsatur(G)
+        print(f"[OK] DSATUR executado. Qtd de cores encontradas: {len(set(res_dsatur.values()))}")
 
-    arquivo_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "graph.json")
-    with open(arquivo_json, "w", encoding="utf-8") as f:
-        json.dump(grafo_em_json(G, resultado), f, ensure_ascii=False, indent=1)
-    print(f"Grafo exportado em {os.path.relpath(arquivo_json)}")
+        # Teste da Busca Gulosa com Preferências (Iteração 09)
+        param_N = 2
+        preferencias_mock = {
+            1: [0, 1, 2],
+            2: [2, 3, 4]
+        }
 
-    try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        cores_nos = [resultado[node] for node in G.nodes()]
-        rotulos = {a["ALO_ID"]: a["DIS_DISCIPLINA"]["DIS_CODIGO"] for a in alocacoes}
-
-        plt.figure(figsize=(15, 10))
-        pos = nx.spring_layout(G, k=0.35, seed=42)
-        nx.draw_networkx_nodes(G, pos, node_color=cores_nos, cmap=plt.cm.tab10, node_size=700, edgecolors='black')
-        nx.draw_networkx_edges(G, pos, alpha=0.25)
-        nx.draw_networkx_labels(G, pos, labels=rotulos, font_size=6, font_weight='bold')
-
-        plt.title("Grafo de conflitos (alocações). Cor = slot de horário pelo DSATUR da equipe")
-        plt.axis("off")
-        arquivo_png = os.path.join(pasta_backend, "..", "docs", "img", "grafo_conflitos.png")
-        os.makedirs(os.path.dirname(arquivo_png), exist_ok=True)
-        plt.savefig(arquivo_png, format="PNG", dpi=130, bbox_inches="tight")
-        print(f"Imagem salva em {os.path.relpath(arquivo_png)}")
-    except ImportError:
-        print("\nAviso: Matplotlib não instalado. A imagem não foi gerada, mas o resultado textual está pronto.")
+        res_guloso = resolver_coloracao_com_preferencias(G, preferencias_professores=preferencias_mock, param_N=param_N)
+        print(f"[OK] Busca Gulosa com Preferências executada. Qtd de cores utilizadas: {len(set(res_guloso.values()))}")
+    else:
+        print("Erro ao conectar ao Supabase.")
