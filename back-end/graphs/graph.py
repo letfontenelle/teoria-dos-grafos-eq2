@@ -1,6 +1,5 @@
 import json
 import os
-<<<<<<< HEAD
 import networkx as nx
 
 
@@ -42,38 +41,11 @@ def dsatur(G):
                 saturacao[vizinho] = len(cores_vizinhos_do_vizinho)
 
     return cores
-=======
-
-import networkx as nx
-
-try:
-    from graphs.coloracao import dsatur
-except ImportError:  # quando executado de dentro da pasta graphs/
-    from coloracao import dsatur
->>>>>>> 0c87cf57d56642c73ab74416f2bc2a81df31a1a5
 
 
 def construir_grafo_conflitos(alocacoes):
     """
-<<<<<<< HEAD
     Constrói o grafo de conflitos para a Grade Horária.
-=======
-    Constrói o Grafo de Conflitos para a Grade Horária.
-
-    Parâmetros:
-      alocacoes (list[dict]): alocações (tabela ALO_ALOCACAO) com a disciplina
-                              aninhada em DIS_DISCIPLINA, como vem do banco.
-
-    Retorna:
-      nx.Graph: Grafo onde os nós são as alocações e as arestas representam conflitos de horário.
-
-    Regras de aresta:
-      1. Mesmo professor: um professor não ministra duas aulas no mesmo horário.
-      2. Mesmo período (perfil pleno): o aluno blocado precisa conseguir cursar
-         todas as disciplinas do seu período. A exceção são duas ELETIVAS do
-         mesmo período: o aluno escolhe algumas, então elas podem coincidir
-         entre si (é o que a grade atual da coordenação faz).
->>>>>>> 0c87cf57d56642c73ab74416f2bc2a81df31a1a5
     """
     G = nx.Graph()
 
@@ -81,14 +53,9 @@ def construir_grafo_conflitos(alocacoes):
     for alo in alocacoes:
         alo_id = alo.get("ALO_ID")
         pro_id = alo.get("PRO_ID")
-<<<<<<< HEAD
         disciplina_info = alo.get("DI_DISCIPLINA", {}) or alo.get("DIS_DISCIPLINA", {}) or {}
         
         di_periodo = disciplina_info.get("DI_PERIODO") if isinstance(disciplina_info, dict) else None
-=======
-        disciplina_info = alo.get("DIS_DISCIPLINA", {})
-        disciplina_info = disciplina_info if isinstance(disciplina_info, dict) else {}
->>>>>>> 0c87cf57d56642c73ab74416f2bc2a81df31a1a5
 
         G.add_node(
             alo_id,
@@ -129,12 +96,7 @@ def construir_grafo_conflitos(alocacoes):
 
 def construir_grafo_da_grade_salva(grade_horaria):
     """
-<<<<<<< HEAD
     Instancia o resultado salvo no banco (tabela GRA_GRADE_HORARIA) em um grafo em memória.
-=======
-    Atende ao requisito da professora:
-    Instancia a grade salva em um grafo, mantendo todas as faixas de cada alocação.
->>>>>>> 0c87cf57d56642c73ab74416f2bc2a81df31a1a5
     """
     G = nx.Graph()
 
@@ -195,7 +157,6 @@ if __name__ == "__main__":
     if pasta_backend not in sys.path:
         sys.path.insert(0, pasta_backend)
 
-<<<<<<< HEAD
     from database.connection import connect
     
     supabase = getattr(connect, 'supabase', connect() if callable(connect) else connect)
@@ -225,44 +186,3 @@ if __name__ == "__main__":
         print(f"[OK] Busca Gulosa com Preferências executada. Qtd de cores utilizadas: {len(set(res_guloso.values()))}")
     else:
         print("Erro ao conectar ao Supabase.")
-=======
-    from graphs.coloracao import maior_clique
-    from graphs.dados import BancoSupabase
-
-    print("--- Testando a Modelagem em Grafos ---")
-    alocacoes = BancoSupabase().carregar_dados()["alocacoes"]
-
-    G = construir_grafo_conflitos(alocacoes)
-    print(f"Vértices (Aulas) criados: {G.number_of_nodes()}")
-    print(f"Arestas (Conflitos de Prof/Período) criadas: {G.number_of_edges()}")
-
-    resultado = resolver_coloracao_horarios(G)
-    print(f"\nDSATUR usou {len(set(resultado.values()))} cores; maior clique = {maior_clique(G)}.")
-
-    arquivo_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "graph.json")
-    with open(arquivo_json, "w", encoding="utf-8") as f:
-        json.dump(grafo_em_json(G, resultado), f, ensure_ascii=False, indent=1)
-    print(f"Grafo exportado em {os.path.relpath(arquivo_json)}")
-
-    try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        cores_nos = [resultado[node] for node in G.nodes()]
-        rotulos = {a["ALO_ID"]: a["DIS_DISCIPLINA"]["DIS_CODIGO"] for a in alocacoes}
-
-        plt.figure(figsize=(15, 10))
-        pos = nx.spring_layout(G, k=0.35, seed=42)
-        nx.draw_networkx_nodes(G, pos, node_color=cores_nos, cmap=plt.cm.tab10, node_size=700, edgecolors='black')
-        nx.draw_networkx_edges(G, pos, alpha=0.25)
-        nx.draw_networkx_labels(G, pos, labels=rotulos, font_size=6, font_weight='bold')
-
-        plt.title("Grafo de conflitos (alocações). Cor = slot de horário pelo DSATUR da equipe")
-        plt.axis("off")
-        arquivo_png = os.path.join(pasta_backend, "..", "docs", "img", "grafo_conflitos.png")
-        os.makedirs(os.path.dirname(arquivo_png), exist_ok=True)
-        plt.savefig(arquivo_png, format="PNG", dpi=130, bbox_inches="tight")
-        print(f"Imagem salva em {os.path.relpath(arquivo_png)}")
-    except ImportError:
-        print("\nAviso: Matplotlib não instalado. A imagem não foi gerada, mas o resultado textual está pronto.")
->>>>>>> 0c87cf57d56642c73ab74416f2bc2a81df31a1a5
