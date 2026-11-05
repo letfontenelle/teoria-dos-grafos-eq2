@@ -18,14 +18,14 @@ uvicorn main:app --reload
 
 Antes, copie `.env.example` (na raiz) para `.env` e preencha as chaves do Supabase. Os dados vêm das tabelas da equipe de dados no Supabase. Abra http://localhost:8000; a documentação da API fica em http://localhost:8000/docs.
 
-Testes: `python -m pytest testes -v`, de dentro de `back-end` (59 testes). Eles usam a planilha da equipe de dados e não acessam o Supabase.
+Testes: `python -m pytest testes -v`, de dentro de `back-end` (62 testes). Eles usam a planilha da equipe de dados e não acessam o Supabase.
 
 ## O que o sistema faz
 
 | Tela | O que mostra |
 |---|---|
 | **Grade** | Grade por período ou por professor, nos três estados do protótipo (sem conflito, com conflito, vazio). Arrastar uma aula para outra faixa muda a cor do vértice no grafo e recalcula os conflitos. |
-| **Gerar grade** | Gera a grade com DSATUR ou com a busca gulosa e mostra a coloração passo a passo: grafo sem cor = grade vazia, parcialmente colorido = grade parcial, todo colorido = grade completa. Salva e carrega grades do banco. |
+| **Gerar grade** | Gera a grade com DSATUR ou com a busca gulosa e mostra a coloração passo a passo: grafo sem cor = grade vazia, parcialmente colorido = grade parcial, todo colorido = grade completa. Preferências de horário até 13h e o parâmetro N são validados e aplicados à geração. Salva e carrega grades do banco. |
 | **Grafo de conflitos** | O subgrafo de um período ou de um professor, com as cores (blocos de horário) e as arestas por motivo. Exporta o grafo em JSON. |
 | **Dados e carga** | Totais das tabelas do Supabase e a tabela de disciplinas. |
 

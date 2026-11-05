@@ -9,13 +9,14 @@ Os dados vêm das tabelas da equipe de dados no Supabase (precisa do .env);
 a carga é feita por database/data_ingestion. Ver graphs/dados.py.
 """
 import os
+from collections import Counter
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from graphs.agendamento import ORDENS
+from graphs.agendamento import ORDENS, expandir_sessoes
 from graphs.coloracao import resumo_coloracao
 from graphs.dados import DIAS, SEMESTRE_ATUAL, BancoSupabase
 from graphs.graph import construir_grafo_conflitos
@@ -60,6 +61,8 @@ app = FastAPI(title="Grade horária por coloração de grafos — Equipe 02",
 
 class PedidoGerar(BaseModel):
     ordem: str = "dsatur"
+    preferencias_professores: dict[int, list[str]] = Field(default_factory=dict)
+    param_N: int | None = Field(default=None, ge=1)
 
 
 class PedidoSemestre(BaseModel):
@@ -107,8 +110,45 @@ def grade_atual(passo: int | None = None):
 def gerar(pedido: PedidoGerar):
     if pedido.ordem not in ORDENS:
         raise HTTPException(400, f"ordem inválida; use uma de {list(ORDENS)}")
+    preferencias = {}
+    preferencias_recebidas = {
+        pro_id: set(horarios) for pro_id, horarios in pedido.preferencias_professores.items() if horarios
+    }
+    if preferencias_recebidas and pedido.param_N is None:
+        raise HTTPException(422, "Defina um valor de N para aplicar as preferências de horário.")
+
+    professores = {p["PRO_ID"] for p in ctx.dados["professores"]}
+    horarios_por_codigo = {
+        f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}': h
+        for h in ctx.dados["horarios"]
+        if h["HOR_FIM"] <= "13:00"
+    }
+    carga_por_professor = Counter()
+    for sessao in expandir_sessoes(ctx.dados["alocacoes"]):
+        carga_por_professor[sessao["PRO_ID"]] += sessao["SLOTS"]
+
+    for pro_id, codigos in preferencias_recebidas.items():
+        if pro_id not in professores:
+            raise HTTPException(422, f"Professor {pro_id} não encontrado.")
+        codigos_invalidos = codigos - horarios_por_codigo.keys()
+        if codigos_invalidos:
+            raise HTTPException(
+                422,
+                f"Horário(s) inválido(s) ou após 13:00 para o professor {pro_id}: "
+                f"{', '.join(sorted(codigos_invalidos))}.",
+            )
+        carga_necessaria = carga_por_professor[pro_id]
+        minimo = carga_necessaria + pedido.param_N
+        if len(codigos) < minimo:
+            raise HTTPException(
+                422,
+                f"Professor {pro_id}: selecione pelo menos {minimo} horários "
+                f"({carga_necessaria} necessários + N={pedido.param_N}).",
+            )
+        preferencias[pro_id] = {horarios_por_codigo[codigo]["HOR_ID"] for codigo in codigos}
+
     try:
-        ctx.grade = GradeEmMemoria.gerar(ctx.dados, pedido.ordem)
+        ctx.grade = GradeEmMemoria.gerar(ctx.dados, pedido.ordem, preferencias or None)
     except ValueError as erro:
         raise HTTPException(422, str(erro))
     return ctx.grade.estado()

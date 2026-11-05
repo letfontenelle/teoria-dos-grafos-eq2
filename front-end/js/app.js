@@ -38,6 +38,8 @@
     periodoGrafo: 5,
     professorGrafo: null,
     grafo: null,
+    preferenciasPorProfessor: new Map(),
+    horariosPreferidos: new Set(),
   };
 
   const $ = (sel, raiz) => (raiz || document).querySelector(sel);
@@ -320,7 +322,17 @@
     botao.disabled = true;
     try {
       parar();
-      st.grade = await post("/grade/gerar", { ordem: $("#sel-ordem").value });
+      const preferencias = preferenciasParaEnvio();
+      const pedido = { ordem: $("#sel-ordem").value };
+      if (Object.keys(preferencias).length) {
+        const n = Number($("#inp-n-excedentes").value);
+        if (!Number.isInteger(n) || n < 1) {
+          throw new Error("Defina um valor inteiro de N (mínimo 1) para aplicar as preferências.");
+        }
+        pedido.param_N = n;
+        pedido.preferencias_professores = preferencias;
+      }
+      st.grade = await post("/grade/gerar", pedido);
       fecharDetalhe();
       renderGrade();
       await atualizarGerar(false);
@@ -605,6 +617,178 @@
     $("#sel-professor").value = $("#sel-professor-grafo").value = eliane.PRO_ID;
     $("#sel-ordem").replaceChildren(...st.dados.ordens.map(o => el("option", { value: o.valor }, o.nome)));
     $("#sel-ordem").value = "dsatur";
+    preencherControlesCadastro();
+  }
+
+  function preencherControlesCadastro() {
+    const professores = [...st.dados.professores].sort((a, b) => a.PRO_NOME.localeCompare(b.PRO_NOME));
+    const opcoesProfessores = [
+      el("option", { value: "", disabled: true, selected: true }, "Selecione um professor"),
+      ...professores.map(p => el("option", { value: p.PRO_ID }, titulo(p.PRO_NOME))),
+    ];
+    for (const id of ["#sel-alocacao-professor", "#sel-restricao-professor"]) {
+      $(id).replaceChildren(...opcoesProfessores.map(o => o.cloneNode(true)));
+    }
+
+    const disciplinas = [...st.dados.disciplinas].sort((a, b) => a.DIS_CODIGO.localeCompare(b.DIS_CODIGO));
+    $("#sel-alocacao-disciplina").replaceChildren(
+      el("option", { value: "", disabled: true, selected: true }, "Selecione uma disciplina"),
+      ...disciplinas.map(d => el("option", { value: d.DIS_ID }, `${d.DIS_CODIGO} · ${titulo(d.DIS_DESCRICAO)}`)));
+
+    renderGradePreferencias();
+    renderRestricoes();
+  }
+
+  function horariosAte13() {
+    return st.dados.faixas.filter(f => f.fim <= "13:00");
+  }
+
+  function renderGradePreferencias() {
+    const faixas = horariosAte13();
+    const grade = $("#grade-preferencias");
+    const cabecalho = el("div", { class: "cabecalho-grade-preferencias" },
+      el("span", { class: "rotulo-horario" }, "Horário"),
+      st.dados.dias.map(dia => el("div", { class: "dia-preferencia" },
+        el("span", {}, dia.nome),
+        el("button", {
+          class: "botao botao-icone",
+          type: "button",
+          "data-selecionar-dia": dia.dia,
+          "aria-label": `Selecionar todos os horários de ${dia.nome}`,
+          title: `Selecionar todos de ${dia.nome}`,
+        }, "Todos"))));
+    const linhas = faixas.map(f => el("div", { class: "linha-grade-preferencias" },
+      el("span", { class: "rotulo-horario" }, `${f.inicio}–${f.fim}`),
+      st.dados.dias.map(dia => {
+        const valor = `${dia.dia}${f.faixa}`;
+        const selecionado = st.horariosPreferidos.has(valor);
+        return el("button", {
+          class: "celula-preferencia" + (selecionado ? " selecionada" : ""),
+          type: "button",
+          "data-horario": valor,
+          "aria-pressed": String(selecionado),
+          "aria-label": `${dia.nome}, ${f.inicio} a ${f.fim}${selecionado ? ", selecionado" : ""}`,
+          title: `${dia.nome} · ${f.inicio}–${f.fim}`,
+        }, selecionado ? "✓" : "");
+      })));
+    grade.replaceChildren(cabecalho, ...linhas);
+    renderResumoPreferencias();
+  }
+
+  function renderResumoPreferencias() {
+    const quantidade = st.horariosPreferidos.size;
+    const n = $("#inp-n-excedentes").value.trim();
+    $("#resumo-preferencias").textContent =
+      `${quantidade} horário${quantidade === 1 ? "" : "s"} selecionado${quantidade === 1 ? "" : "s"} até 13:00. ` +
+      `O mínimo exigido será calculado com base nas alocações do professor + N${n ? ` (${n})` : ""}.`;
+  }
+
+  function salvarPreferenciaAtual() {
+    const professor = $("#sel-restricao-professor").value;
+    if (!professor) return;
+    if (st.horariosPreferidos.size) {
+      st.preferenciasPorProfessor.set(professor, new Set(st.horariosPreferidos));
+    } else {
+      st.preferenciasPorProfessor.delete(professor);
+    }
+    renderRestricoes();
+  }
+
+  function preferenciasParaEnvio() {
+    const preferencias = new Map(st.preferenciasPorProfessor);
+    const professorAtual = $("#sel-restricao-professor").value;
+    if (professorAtual) {
+      if (st.horariosPreferidos.size) preferencias.set(professorAtual, st.horariosPreferidos);
+      else preferencias.delete(professorAtual);
+    }
+    return Object.fromEntries([...preferencias]
+      .filter(([, horarios]) => horarios.size)
+      .map(([professor, horarios]) => [professor, [...horarios].sort()]));
+  }
+
+  function renderRestricoes() {
+    const corpo = $("#tabela-restricoes tbody");
+    if (!corpo) return;
+    const nomes = new Map(st.dados.professores.map(p => [String(p.PRO_ID), p.PRO_NOME]));
+    const linhas = [...st.preferenciasPorProfessor]
+      .filter(([, horarios]) => horarios.size)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([professor, horarios]) => el("tr", {},
+        el("td", {}, titulo(nomes.get(String(professor)) || `Professor ${professor}`)),
+        el("td", {}, [...horarios].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true })).join(", ")),
+        el("td", {}, el("button", {
+          class: "botao",
+          type: "button",
+          onclick: () => {
+            st.preferenciasPorProfessor.delete(professor);
+            if ($("#sel-restricao-professor").value === String(professor)) {
+              st.horariosPreferidos.clear();
+              renderGradePreferencias();
+            }
+            renderRestricoes();
+          },
+        }, "Remover"))));
+    corpo.replaceChildren(...(linhas.length ? linhas : [
+      el("tr", {}, el("td", { class: "cadastro-vazio", colspan: "3" }, "Nenhuma preferência cadastrada.")),
+    ]));
+  }
+
+  function ligarEventosPreferencias() {
+    $("#grade-preferencias").addEventListener("click", e => {
+      const botaoHorario = e.target.closest("[data-horario]");
+      if (botaoHorario) {
+        const horario = botaoHorario.dataset.horario;
+        if (st.horariosPreferidos.has(horario)) st.horariosPreferidos.delete(horario);
+        else st.horariosPreferidos.add(horario);
+        salvarPreferenciaAtual();
+        renderGradePreferencias();
+        return;
+      }
+
+      const botaoDia = e.target.closest("[data-selecionar-dia]");
+      if (!botaoDia) return;
+      const dia = st.dados.dias.find(d => d.dia === +botaoDia.dataset.selecionarDia);
+      if (!dia) return;
+      for (const f of horariosAte13()) st.horariosPreferidos.add(`${dia.dia}${f.faixa}`);
+      salvarPreferenciaAtual();
+      renderGradePreferencias();
+    });
+
+    $("#btn-limpar-preferencias").addEventListener("click", () => {
+      st.horariosPreferidos.clear();
+      salvarPreferenciaAtual();
+      renderGradePreferencias();
+    });
+
+    $("#sel-restricao-professor").addEventListener("change", e => {
+      const anterior = $("#sel-restricao-professor").dataset.professor;
+      if (anterior) st.preferenciasPorProfessor.set(anterior, new Set(st.horariosPreferidos));
+      const atual = e.target.value;
+      st.horariosPreferidos = new Set(st.preferenciasPorProfessor.get(atual) || []);
+      e.target.dataset.professor = atual;
+      renderGradePreferencias();
+    });
+
+    $("#btn-salvar-preferencias").addEventListener("click", () => {
+      if (!$("#sel-restricao-professor").value) {
+        avisar("Selecione um professor para concluir as preferências.", true);
+        return;
+      }
+      salvarPreferenciaAtual();
+      avisar("Preferências registradas para o professor selecionado; serão usadas na próxima geração da grade.");
+    });
+
+    $("#btn-salvar-parametro").addEventListener("click", () => {
+      const n = Number($("#inp-n-excedentes").value);
+      if (!Number.isInteger(n) || n < 1) {
+        avisar("Informe um valor inteiro de N igual ou maior que 1.", true);
+        return;
+      }
+      renderResumoPreferencias();
+      avisar(`Parâmetro N=${n} aplicado à próxima geração com preferências.`);
+    });
+
+    $("#inp-n-excedentes").addEventListener("input", renderResumoPreferencias);
   }
 
   function ligarEventos() {
@@ -626,6 +810,7 @@
     $("#btn-passo-menos").addEventListener("click", () => { parar(); irParaPasso(st.passo - 1); });
     $("#btn-passo-mais").addEventListener("click", () => { parar(); irParaPasso(st.passo + 1); });
     $("#rng-passo").addEventListener("input", e => { parar(); irParaPasso(+e.target.value); });
+    ligarEventosPreferencias();
   }
 
   async function iniciar() {
@@ -642,7 +827,7 @@
     renderSemestres();
     await atualizarGerar(false);
     const aba = location.hash.slice(1);
-    if (["grade", "gerar", "grafo", "dados"].includes(aba)) trocarAba(aba);
+    if (["grade", "gerar", "grafo", "dados", "cadastros"].includes(aba)) trocarAba(aba);
   }
 
   iniciar();
