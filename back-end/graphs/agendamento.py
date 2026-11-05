@@ -207,10 +207,11 @@ def colocar_sessoes(G, sessoes, blocos, ordem="alfabetica", espalhar=True,
     while pendentes:
         if ordem == "dsatur":
             # Saturação: quantos blocos (cores) os vizinhos já colocados ocupam.
-            s = min(pendentes, key=lambda x: (-len(bloqueados(x["ALO_ID"])), -G.degree(x["ALO_ID"])))
+            s = min(pendentes, key=lambda x: (x.get("PRO_ID") not in preferencias_professores,-len(bloqueados(x["ALO_ID"])),-G.degree(x["ALO_ID"]),))
             pendentes.remove(s)
         else:
-            s = pendentes.pop(0)
+            s = next((x for x in pendentes if x.get("PRO_ID") in preferencias_professores), pendentes[0])
+            pendentes.remove(s)
         no = s["ALO_ID"]
         ocupados = bloqueados(no)
         livres = [op for op in posicoes(s.get("SPAN", 1))
