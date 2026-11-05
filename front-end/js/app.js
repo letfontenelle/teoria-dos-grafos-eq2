@@ -40,6 +40,7 @@
     grafo: null,
     preferenciasPorProfessor: new Map(),
     horariosPreferidos: new Set(),
+    alocacoesRascunho: [],
   };
 
   const $ = (sel, raiz) => (raiz || document).querySelector(sel);
@@ -635,8 +636,50 @@
       el("option", { value: "", disabled: true, selected: true }, "Selecione uma disciplina"),
       ...disciplinas.map(d => el("option", { value: d.DIS_ID }, `${d.DIS_CODIGO} · ${titulo(d.DIS_DESCRICAO)}`)));
 
+    renderAlocacoesRascunho();
     renderGradePreferencias();
     renderRestricoes();
+  }
+
+  function renderAlocacoesRascunho() {
+    const corpo = $("#tabela-alocacoes tbody");
+    const professores = new Map(st.dados.professores.map(p => [String(p.PRO_ID), p]));
+    const disciplinas = new Map(st.dados.disciplinas.map(d => [String(d.DIS_ID), d]));
+    const linhas = st.alocacoesRascunho.map((alocacao, indice) => {
+      const professor = professores.get(alocacao.professorId);
+      const disciplina = disciplinas.get(alocacao.disciplinaId);
+      return el("tr", {},
+        el("td", {}, titulo(professor.PRO_NOME)),
+        el("td", {}, `${disciplina.DIS_CODIGO} · ${titulo(disciplina.DIS_DESCRICAO)}`),
+        el("td", {}, el("button", {
+          class: "botao",
+          type: "button",
+          "aria-label": `Remover alocação de ${titulo(professor.PRO_NOME)} em ${disciplina.DIS_CODIGO}`,
+          onclick: () => {
+            st.alocacoesRascunho.splice(indice, 1);
+            renderAlocacoesRascunho();
+          },
+        }, "Remover")));
+    });
+    corpo.replaceChildren(...(linhas.length ? linhas : [
+      el("tr", {}, el("td", { class: "cadastro-vazio", colspan: "3" }, "Nenhum rascunho cadastrado nesta sessão.")),
+    ]));
+  }
+
+  function cadastrarAlocacaoRascunho() {
+    const professorId = $("#sel-alocacao-professor").value;
+    const disciplinaId = $("#sel-alocacao-disciplina").value;
+    if (!professorId || !disciplinaId) {
+      avisar("Selecione um professor e uma disciplina.", true);
+      return;
+    }
+    if (st.alocacoesRascunho.some(a => a.professorId === professorId && a.disciplinaId === disciplinaId)) {
+      avisar("Essa alocação já está na lista de rascunhos.", true);
+      return;
+    }
+    st.alocacoesRascunho.push({ professorId, disciplinaId });
+    renderAlocacoesRascunho();
+    avisar("Alocação adicionada à lista de rascunhos desta sessão; ela não foi salva no banco.");
   }
 
   function horariosAte13() {
@@ -803,6 +846,7 @@
     $("#detalhe-fechar").addEventListener("click", fecharDetalhe);
     document.addEventListener("keydown", e => { if (e.key === "Escape") fecharDetalhe(); });
     $("#btn-gerar").addEventListener("click", gerar);
+    $("#btn-cadastrar-alocacao").addEventListener("click", cadastrarAlocacaoRascunho);
     $("#btn-salvar").addEventListener("click", salvar);
     $("#btn-tocar").addEventListener("click", tocar);
     $("#btn-passo-inicio").addEventListener("click", () => { parar(); irParaPasso(0); });

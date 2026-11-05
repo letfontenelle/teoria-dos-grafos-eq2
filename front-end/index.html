@@ -152,11 +152,11 @@
       <div class="colunas">
         <div class="cartao pilha">
           <h2>Cadastro de alocação</h2>
-          <p class="texto">Vincule um professor a uma disciplina para definir sua alocação de aulas.</p>
+          <p class="texto">Adicione um professor e uma disciplina à lista de rascunhos desta sessão. O cadastro não é salvo no banco nem usado para gerar a grade.</p>
           <div id="form-alocacao" class="pilha cadastro-form">
             <label class="campo campo-largo"><span>Professor</span><select id="sel-alocacao-professor"></select></label>
             <label class="campo campo-largo"><span>Disciplina</span><select id="sel-alocacao-disciplina"></select></label>
-            <button class="botao botao-primario" type="button">Cadastrar alocação</button>
+            <button id="btn-cadastrar-alocacao" class="botao botao-primario" type="button">Cadastrar alocação</button>
           </div>
           <div class="tabela-rolagem">
             <table id="tabela-alocacoes" class="tabela">
@@ -187,7 +187,7 @@
           </div>
         </div>
       </div>
-      <p class="dica">As preferências são aplicadas ao gerar a grade. O cadastro de novas alocações ainda é apenas visual.</p>
+      <p class="dica">As preferências são aplicadas ao gerar a grade. Alocações adicionadas aqui são rascunhos temporários: não são persistidas e não alteram a geração da grade.</p>
     </section>
   </div>
 
