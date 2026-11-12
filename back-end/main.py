@@ -69,6 +69,22 @@ class PedidoSemestre(BaseModel):
     semestre: str
 
 
+class PedidoPreferencias(BaseModel):
+    semestre: str = SEMESTRE_ATUAL
+    preferencias_professores: dict[int, list[str]] = Field(default_factory=dict)
+
+
+class PedidoPreferenciaProfessor(BaseModel):
+    semestre: str = SEMESTRE_ATUAL
+    horarios: list[str] = Field(default_factory=list)
+
+
+class PedidoAnalisePreferencias(BaseModel):
+    semestre: str = SEMESTRE_ATUAL
+    ordem: str = "dsatur"
+    param_N: int = Field(ge=1)
+
+
 class PedidoMover(BaseModel):
     sessao: str
     dia: int
@@ -96,6 +112,213 @@ def dados():
         "semestres": ctx.repo.semestres(),
         "ordens": [{"valor": o, "nome": NOMES_ORDEM[o]} for o in ORDENS],
         "banco": ctx.repo.descricao,
+    }
+
+
+@app.get("/api/preferencias")
+def preferencias(semestre: str = SEMESTRE_ATUAL):
+    semestre = semestre.strip()
+    if not semestre:
+        raise HTTPException(400, "Informe o semestre.")
+
+    codigo_por_horario = {
+        h["HOR_ID"]: f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}'
+        for h in ctx.dados["horarios"]
+    }
+    resultado = {}
+    for linha in ctx.repo.carregar_preferencias(semestre):
+        codigo = codigo_por_horario.get(linha["ho_id"])
+        if codigo is None:
+            raise HTTPException(500, f"Horário {linha['ho_id']} da tabela PRE_PREFERENCIA não encontrado.")
+        resultado.setdefault(str(linha["pro_id"]), set()).add(codigo)
+
+    return {
+        "semestre": semestre,
+        "preferencias_professores": {
+            pro_id: sorted(codigos, key=lambda codigo: (int(codigo[:-1]), codigo[-1]))
+            for pro_id, codigos in sorted(resultado.items(), key=lambda item: int(item[0]))
+        },
+    }
+
+
+@app.put("/api/preferencias")
+def salvar_preferencias(pedido: PedidoPreferencias):
+    semestre = pedido.semestre.strip()
+    if not semestre:
+        raise HTTPException(400, "Informe o semestre.")
+
+    professores = {p["PRO_ID"] for p in ctx.dados["professores"]}
+    horarios_por_codigo = {
+        f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}': h
+        for h in ctx.dados["horarios"]
+        if h["HOR_FIM"] <= "13:00"
+    }
+    preferencias_por_horario = {}
+    preferencias_normalizadas = {}
+    for pro_id, codigos in pedido.preferencias_professores.items():
+        if pro_id not in professores:
+            raise HTTPException(422, f"Professor {pro_id} não encontrado.")
+        codigos = set(codigos)
+        codigos_invalidos = codigos - horarios_por_codigo.keys()
+        if codigos_invalidos:
+            raise HTTPException(
+                422,
+                f"Horário(s) inválido(s) ou após 13:00 para o professor {pro_id}: "
+                f"{', '.join(sorted(codigos_invalidos))}.",
+            )
+        if codigos:
+            preferencias_por_horario[pro_id] = {
+                horarios_por_codigo[codigo]["HOR_ID"] for codigo in codigos
+            }
+            preferencias_normalizadas[str(pro_id)] = sorted(
+                codigos, key=lambda codigo: (int(codigo[:-1]), codigo[-1])
+            )
+
+    registros = ctx.repo.salvar_preferencias(semestre, preferencias_por_horario)
+    return {
+        "semestre": semestre,
+        "registros": registros,
+        "preferencias_professores": preferencias_normalizadas,
+    }
+
+
+@app.get("/api/professores/{pro_id}/preferencias")
+def preferencias_do_professor(pro_id: int, semestre: str = SEMESTRE_ATUAL):
+    semestre = semestre.strip()
+    if not semestre:
+        raise HTTPException(400, "Informe o semestre.")
+
+    professores = {p["PRO_ID"] for p in ctx.dados["professores"]}
+    if pro_id not in professores:
+        raise HTTPException(404, f"Professor {pro_id} não encontrado.")
+
+    codigo_por_horario = {
+        h["HOR_ID"]: f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}'
+        for h in ctx.dados["horarios"]
+    }
+    codigos = []
+    for linha in ctx.repo.carregar_preferencias_professor(semestre, pro_id):
+        codigo = codigo_por_horario.get(linha["ho_id"])
+        if codigo is None:
+            raise HTTPException(500, f"Horário {linha['ho_id']} da tabela PRE_PREFERENCIA não encontrado.")
+        codigos.append(codigo)
+
+    return {
+        "semestre": semestre,
+        "pro_id": pro_id,
+        "horarios": sorted(set(codigos), key=lambda codigo: (int(codigo[:-1]), codigo[-1])),
+    }
+
+
+@app.put("/api/professores/{pro_id}/preferencias")
+def salvar_preferencias_do_professor(pro_id: int, pedido: PedidoPreferenciaProfessor):
+    semestre = pedido.semestre.strip()
+    if not semestre:
+        raise HTTPException(400, "Informe o semestre.")
+
+    professores = {p["PRO_ID"] for p in ctx.dados["professores"]}
+    if pro_id not in professores:
+        raise HTTPException(404, f"Professor {pro_id} não encontrado.")
+
+    horarios_por_codigo = {
+        f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}': h
+        for h in ctx.dados["horarios"]
+        if h["HOR_FIM"] <= "13:00"
+    }
+    codigos = set(pedido.horarios)
+    codigos_invalidos = codigos - horarios_por_codigo.keys()
+    if codigos_invalidos:
+        raise HTTPException(
+            422,
+            f"Horário(s) inválido(s) ou após 13:00: {', '.join(sorted(codigos_invalidos))}.",
+        )
+
+    horarios = {horarios_por_codigo[codigo]["HOR_ID"] for codigo in codigos}
+    registros = ctx.repo.salvar_preferencias_professor(semestre, pro_id, horarios)
+    return {
+        "semestre": semestre,
+        "pro_id": pro_id,
+        "registros": registros,
+        "horarios": sorted(codigos, key=lambda codigo: (int(codigo[:-1]), codigo[-1])),
+    }
+
+
+@app.post("/api/preferencias/analisar")
+def analisar_preferencias(pedido: PedidoAnalisePreferencias):
+    semestre = pedido.semestre.strip()
+    if not semestre:
+        raise HTTPException(400, "Informe o semestre.")
+    if pedido.ordem not in ORDENS:
+        raise HTTPException(400, f"ordem inválida; use uma de {list(ORDENS)}")
+
+    professores = {p["PRO_ID"] for p in ctx.dados["professores"]}
+    horarios_por_codigo = {
+        f'{h["HOR_DIA"]}{h["HOR_FAIXA"]}': h
+        for h in ctx.dados["horarios"]
+        if h["HOR_FIM"] <= "13:00"
+    }
+    codigo_por_horario = {
+        horario["HOR_ID"]: codigo for codigo, horario in horarios_por_codigo.items()
+    }
+    preferencias_por_horario = {}
+    preferencias_por_codigo = {}
+    for linha in ctx.repo.carregar_preferencias(semestre):
+        pro_id, ho_id = linha["pro_id"], linha["ho_id"]
+        if pro_id not in professores or ho_id not in codigo_por_horario:
+            raise HTTPException(422, "A tabela PRE_PREFERENCIA contém professor ou horário inválido.")
+        preferencias_por_horario.setdefault(pro_id, set()).add(ho_id)
+        preferencias_por_codigo.setdefault(pro_id, set()).add(codigo_por_horario[ho_id])
+
+    carga_por_professor = Counter()
+    for sessao in expandir_sessoes(ctx.dados["alocacoes"]):
+        carga_por_professor[sessao["PRO_ID"]] += sessao["SLOTS"]
+    for pro_id, codigos in preferencias_por_codigo.items():
+        minimo = carga_por_professor[pro_id] + pedido.param_N
+        if len(codigos) < minimo:
+            raise HTTPException(
+                422,
+                f"Professor {pro_id}: selecione pelo menos {minimo} horários "
+                f"({carga_por_professor[pro_id]} necessários + N={pedido.param_N}).",
+            )
+
+    try:
+        grade = GradeEmMemoria.gerar(
+            ctx.dados, pedido.ordem, preferencias_por_horario or None
+        )
+    except ValueError as erro:
+        raise HTTPException(422, str(erro))
+    estado = grade.estado()
+    alocados_por_professor = {}
+    for sessao in estado["sessoes"]:
+        alocados_por_professor.setdefault(sessao["pro_id"], set()).update(sessao["rotulos"])
+
+    analise_por_professor = {}
+    for pro_id, preferidos in sorted(preferencias_por_codigo.items()):
+        alocados = alocados_por_professor.get(pro_id, set())
+        fora_da_preferencia = alocados - preferidos
+        analise_por_professor[str(pro_id)] = {
+            "horarios_preferidos": sorted(
+                preferidos, key=lambda codigo: (int(codigo[:-1]), codigo[-1])
+            ),
+            "horarios_alocados": sorted(
+                alocados, key=lambda codigo: (int(codigo[:-1]), codigo[-1])
+            ),
+            "horarios_alocados_dentro_preferencia": sorted(
+                alocados & preferidos, key=lambda codigo: (int(codigo[:-1]), codigo[-1])
+            ),
+            "horarios_alocados_fora_preferencia": sorted(
+                fora_da_preferencia, key=lambda codigo: (int(codigo[:-1]), codigo[-1])
+            ),
+            "atendida_integralmente": not fora_da_preferencia,
+        }
+
+    return {
+        "semestre": semestre,
+        "param_N": pedido.param_N,
+        "ordem": pedido.ordem,
+        "analise_por_professor": analise_por_professor,
+        "grafo": {"conflitos": estado["conflitos"], "resumo": estado["resumo"]},
+        "grade": estado,
     }
 
 

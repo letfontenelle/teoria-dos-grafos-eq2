@@ -9,6 +9,7 @@ da planilha database/data/modelo_grade_professor.xlsx:
   HO_HORARIO         HO_ID, HO_DIA ("Segunda"), HO_FAIXA ("07:10-08:00"), HO_COR
   ALO_ALOCACAO       ALO_ID, PRO_ID, DI_ID
   GRA_GRADE_HORARIA  GRA_ID, GRA_SEMESTRE, ALO_ID, HO_ID
+  PRE_PREFERENCIA    pre_id, pro_id, ho_id, pre_semestre
 
 O grafo (graphs/grade.py e graphs/agendamento.py) usa os nomes DIS_ e HOR_ e o
 horário no padrão dia (2 a 6) + faixa (A a L), ex.: 2C. montar_dados() faz
@@ -120,6 +121,47 @@ class BancoSupabase:
 
     def carregar_grade(self, semestre):
         return linhas_da_grade({"GRA_GRADE_HORARIA": self._ler("GRA_GRADE_HORARIA", semestre=semestre)}, semestre)
+
+    def carregar_preferencias(self, semestre):
+        return (self.cliente.table("PRE_PREFERENCIA")
+                .select("pro_id, ho_id")
+                .eq("pre_semestre", semestre)
+                .order("pro_id")
+                .execute().data)
+
+    def salvar_preferencias(self, semestre, preferencias):
+        tabela = self.cliente.table("PRE_PREFERENCIA")
+        tabela.delete().eq("pre_semestre", semestre).execute()
+        linhas = [
+            {"pro_id": pro_id, "ho_id": ho_id, "pre_semestre": semestre}
+            for pro_id, horarios in sorted(preferencias.items())
+            for ho_id in sorted(horarios)
+        ]
+        if linhas:
+            tabela.insert(linhas).execute()
+        return len(linhas)
+
+    def carregar_preferencias_professor(self, semestre, pro_id):
+        return (self.cliente.table("PRE_PREFERENCIA")
+                .select("pro_id, ho_id")
+                .eq("pre_semestre", semestre)
+                .eq("pro_id", pro_id)
+                .order("ho_id")
+                .execute().data)
+
+    def salvar_preferencias_professor(self, semestre, pro_id, horarios):
+        tabela = self.cliente.table("PRE_PREFERENCIA")
+        (tabela.delete()
+         .eq("pre_semestre", semestre)
+         .eq("pro_id", pro_id)
+         .execute())
+        linhas = [
+            {"pro_id": pro_id, "ho_id": ho_id, "pre_semestre": semestre}
+            for ho_id in sorted(set(horarios))
+        ]
+        if linhas:
+            tabela.insert(linhas).execute()
+        return len(linhas)
 
     def salvar_grade(self, semestre, linhas):
         """Substitui a grade do semestre. A grade atual (carga da equipe de dados) não é sobrescrita."""
