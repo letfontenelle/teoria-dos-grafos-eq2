@@ -121,8 +121,11 @@ O banco em uso é o da equipe de dados no Supabase. As tabelas ainda usam as sig
 | `HO_HORARIO` | `HO_ID`, `HO_DIA` (ex.: Segunda), `HO_FAIXA` (ex.: 07:10-08:00), `HO_COR` | 60 |
 | `ALO_ALOCACAO` | `ALO_ID`, `PRO_ID`, `DI_ID` | 48 |
 | `GRA_GRADE_HORARIA` | `GRA_ID`, `GRA_SEMESTRE`, `ALO_ID`, `HO_ID` | 179 (semestre 2026.2) |
+| `PRE_PREFERENCIA` | `pre_id` (serial), `pro_id`, `ho_id`, `pre_semestre` | — |
 
 O grafo lê essas tabelas por [`back-end/graphs/dados.py`](../back-end/graphs/dados.py), que converte `HO_ID` para o padrão dia + faixa (ex.: `2C`) e calcula a carga horária pelas faixas de cada disciplina na grade atual.
+
+O backend oferece `GET` e `PUT /api/professores/{pro_id}/preferencias` para consultar ou substituir apenas as preferências daquele professor e semestre. `POST /api/preferencias/analisar` gera uma grade de análise sem alterar a grade em memória e compara os horários alocados com os preferidos. Os códigos de horário são persistidos como `ho_id`. As rotas em lote `/api/preferencias` continuam substituindo o conjunto inteiro do semestre e não devem ser usadas para salvar a edição individual de um professor. Essa tabela não é carregada pela planilha de ingestão.
 
 ## Carga de dados
 

@@ -14,9 +14,97 @@ from supabase_falso import ClienteSupabaseFalso  # noqa: E402
 
 @pytest.fixture()
 def cliente():
-    main.ctx.iniciar(BancoSupabase(ClienteSupabaseFalso(tabelas_da_planilha())))
+    tabelas = tabelas_da_planilha()
+    tabelas["PRE_PREFERENCIA"] = []
+    main.ctx.iniciar(BancoSupabase(ClienteSupabaseFalso(tabelas)))
     with TestClient(main.app) as c:
         yield c
+
+
+def test_api_salva_e_carrega_preferencias_por_semestre(cliente):
+    resposta = cliente.put(
+        "/api/preferencias",
+        json={"semestre": "2027.1", "preferencias_professores": {"10": ["2A", "2C", "2A"]}},
+    )
+    assert resposta.status_code == 200
+    assert resposta.json() == {
+        "semestre": "2027.1",
+        "registros": 2,
+        "preferencias_professores": {"10": ["2A", "2C"]},
+    }
+    assert cliente.get("/api/preferencias", params={"semestre": "2027.1"}).json() == {
+        "semestre": "2027.1",
+        "preferencias_professores": {"10": ["2A", "2C"]},
+    }
+    resposta = cliente.put(
+        "/api/preferencias",
+        json={"semestre": "2027.1", "preferencias_professores": {"11": ["2B"]}},
+    )
+    assert resposta.status_code == 200 and resposta.json()["registros"] == 1
+    assert cliente.get("/api/preferencias", params={"semestre": "2027.1"}).json() == {
+        "semestre": "2027.1",
+        "preferencias_professores": {"11": ["2B"]},
+    }
+    assert cliente.get("/api/preferencias", params={"semestre": "2026.2"}).json() == {
+        "semestre": "2026.2",
+        "preferencias_professores": {},
+    }
+
+
+def test_api_valida_preferencias_antes_de_gravar(cliente):
+    resposta = cliente.put(
+        "/api/preferencias",
+        json={"semestre": "2027.1", "preferencias_professores": {"999": ["2A"]}},
+    )
+    assert resposta.status_code == 422 and "Professor 999 não encontrado" in resposta.json()["detail"]
+    resposta = cliente.put(
+        "/api/preferencias",
+        json={"semestre": "2027.1", "preferencias_professores": {"10": ["2H"]}},
+    )
+    assert resposta.status_code == 422 and "após 13:00" in resposta.json()["detail"]
+    assert cliente.get("/api/preferencias", params={"semestre": "2027.1"}).json()[
+        "preferencias_professores"
+    ] == {}
+
+
+def test_preferencias_individuais_nao_apagam_outros_professores(cliente):
+    base = "/api/professores"
+    primeira = cliente.put(
+        f"{base}/10/preferencias",
+        json={"semestre": "2027.1", "horarios": ["2A", "2C"]},
+    )
+    segunda = cliente.put(
+        f"{base}/11/preferencias",
+        json={"semestre": "2027.1", "horarios": ["3A"]},
+    )
+    atualizada = cliente.put(
+        f"{base}/10/preferencias",
+        json={"semestre": "2027.1", "horarios": ["2B"]},
+    )
+    assert primeira.status_code == segunda.status_code == atualizada.status_code == 200
+    assert cliente.get(f"{base}/10/preferencias", params={"semestre": "2027.1"}).json()["horarios"] == ["2B"]
+    assert cliente.get(f"{base}/11/preferencias", params={"semestre": "2027.1"}).json()["horarios"] == ["3A"]
+
+
+def test_analisa_preferencias_salvas_contra_o_grafo(cliente):
+    horarios = [f"{dia}{faixa}" for dia in range(2, 7) for faixa in "ABCDEFG"]
+    resposta = cliente.put(
+        "/api/professores/10/preferencias",
+        json={"semestre": "2027.1", "horarios": horarios},
+    )
+    assert resposta.status_code == 200
+    grade_antes = cliente.get("/api/grade").json()
+
+    analise = cliente.post(
+        "/api/preferencias/analisar",
+        json={"semestre": "2027.1", "param_N": 1},
+    )
+    assert analise.status_code == 200
+    resultado = analise.json()
+    assert resultado["grafo"]["conflitos"] == []
+    assert "10" in resultado["analise_por_professor"]
+    assert resultado["analise_por_professor"]["10"]["atendida_integralmente"] is True
+    assert cliente.get("/api/grade").json() == grade_antes
 
 
 def test_dados_das_tabelas_da_equipe_de_dados(cliente):
