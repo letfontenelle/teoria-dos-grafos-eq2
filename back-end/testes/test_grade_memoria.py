@@ -60,17 +60,52 @@ def test_grafo_sem_cor_parcial_e_completo_viram_grade_vazia_parcial_e_completa()
     assert completa["situacao"] == "completa" and all(s["colorida"] for s in completa["sessoes"])
 
 
-def test_mover_sessao_troca_a_cor_do_vertice_e_aponta_conflito():
+def test_mover_para_horario_com_conflito_e_recusado_sem_alterar_grade():
     grade = GradeEmMemoria.gerar(DADOS, "dsatur")
     estado = grade.estado()
     a = estado["sessoes"][0]
     vizinho = next(s for s in estado["sessoes"]  # mesmo professor, outra disciplina
                    if s["alo_id"] != a["alo_id"] and s["pro_id"] == a["pro_id"] and s["faixas"] == a["faixas"])
     dia, faixa = int(vizinho["rotulos"][0][0]), vizinho["rotulos"][0][1]
-    conflitos = grade.mover(a["id"], dia, faixa)
-    assert any({c["a"], c["b"]} == {a["id"], vizinho["id"]} and c["motivo"].startswith("professor")
-               for c in conflitos)
-    assert grade.estado()["resumo"]["conflitos"] >= 1
+    with pytest.raises(ValueError, match="conflito de horário"):
+        grade.mover(a["id"], dia, faixa)
+    assert grade.estado() == estado
+
+
+def test_mover_para_horario_sem_conflito_e_permitido():
+    grade = GradeEmMemoria.gerar(DADOS, "dsatur")
+    sessao = grade.estado()["sessoes"][0]
+    no = tuple(map(int, sessao["id"].split("-")))
+    horario_atual = tuple(sessao["horarios"])
+    destino = None
+
+    for dia in range(2, 7):
+        for inicio, faixa in enumerate("ABCDEFGHIJKL"):
+            letras = "ABCDEFGHIJKL"[inicio:inicio + sessao["faixas"]]
+            if len(letras) < sessao["faixas"] or any(
+                (dia, letra) not in grade.hor_por_dia_faixa for letra in letras
+            ):
+                continue
+            nova_cor = tuple(grade.hor_por_dia_faixa[(dia, letra)] for letra in letras)
+            if nova_cor == horario_atual:
+                continue
+            if all(
+                not set(nova_cor).intersection(grade.G.nodes[vizinho]["cor"])
+                for vizinho in grade.G.neighbors(no)
+            ):
+                destino = (dia, faixa, nova_cor)
+                break
+        if destino:
+            break
+
+    assert destino is not None
+    dia, faixa, nova_cor = destino
+    assert grade.mover(sessao["id"], dia, faixa) == []
+    estado = grade.estado()
+    atualizada = next(s for s in estado["sessoes"] if s["id"] == sessao["id"])
+    assert tuple(atualizada["horarios"]) == nova_cor
+    assert estado["editada"] is True
+    assert estado["resumo"]["conflitos"] == 0
 
 
 def test_mover_para_fora_do_dia_e_recusado():

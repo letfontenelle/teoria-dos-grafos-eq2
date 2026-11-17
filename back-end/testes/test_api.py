@@ -201,13 +201,16 @@ def test_nao_sobrescreve_a_grade_da_carga(cliente):
     assert cliente.get("/api/dados").json()["semestres"] == [{"semestre": "2026.2", "linhas": 179}]
 
 
-def test_mover_cria_conflito_visivel(cliente):
+def test_mover_recusa_conflito_e_preserva_grade(cliente):
     g = cliente.post("/api/grade/gerar", json={"ordem": "dsatur"}).json()
     a = g["sessoes"][0]
     b = next(s for s in g["sessoes"] if s["id"] != a["id"] and s["pro_id"] == a["pro_id"] and s["faixas"] == a["faixas"])
-    r = cliente.post("/api/grade/mover", json={"sessao": a["id"], "dia": int(b["rotulos"][0][0]),
-                                               "faixa": b["rotulos"][0][1]}).json()
-    assert r["conflitos_da_sessao"] and r["editada"] is True
+    antes = cliente.get("/api/grade").json()
+    resposta = cliente.post("/api/grade/mover", json={"sessao": a["id"], "dia": int(b["rotulos"][0][0]),
+                                                      "faixa": b["rotulos"][0][1]})
+    assert resposta.status_code == 422
+    assert "conflito de horário" in resposta.json()["detail"]
+    assert cliente.get("/api/grade").json() == antes
     assert cliente.post("/api/grade/mover", json={"sessao": "999-0", "dia": 2, "faixa": "A"}).status_code == 404
 
 

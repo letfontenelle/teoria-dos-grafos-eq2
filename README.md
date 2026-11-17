@@ -24,7 +24,7 @@ Testes: `python -m pytest testes -v`, de dentro de `back-end` (62 testes). Eles 
 
 | Tela | O que mostra |
 |---|---|
-| **Grade** | Grade por período ou por professor, nos três estados do protótipo (sem conflito, com conflito, vazio). Arrastar uma aula para outra faixa muda a cor do vértice no grafo e recalcula os conflitos. |
+| **Grade** | Grade por período ou por professor, nos três estados do protótipo (sem conflito, com conflito, vazio). Arrastar uma aula para outra faixa só é permitido se o novo horário não gerar conflitos. |
 | **Gerar grade** | Gera a grade com DSATUR ou com a busca gulosa e mostra a coloração passo a passo: grafo sem cor = grade vazia, parcialmente colorido = grade parcial, todo colorido = grade completa. Preferências de horário até 13h e o parâmetro N são validados e aplicados à geração. Salva e carrega grades do banco. |
 | **Grafo de conflitos** | O subgrafo de um período ou de um professor, com as cores (blocos de horário) e as arestas por motivo. Exporta o grafo em JSON. |
 | **Dados e carga** | Totais das tabelas do Supabase e a tabela de disciplinas. |
