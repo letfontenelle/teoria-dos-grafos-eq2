@@ -388,7 +388,7 @@ def carregar(pedido: PedidoSemestre):
 
 @app.post("/api/grade/mover")
 def mover(pedido: PedidoMover):
-    """Edição no front: a sessão muda de lugar e o vértice muda de cor no grafo."""
+    """Edição no front: recusa horários em conflito antes de alterar a sessão."""
     grade = ctx.exigir_grade()
     try:
         novos = grade.mover(pedido.sessao, pedido.dia, pedido.faixa)

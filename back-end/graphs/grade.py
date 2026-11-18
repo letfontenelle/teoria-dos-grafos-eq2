@@ -8,8 +8,8 @@ item 14:
   grafo -> grade no front    estado(passo): sem cor = grade vazia, parcialmente
                              colorido = grade parcial, todo colorido = grade completa
   grafo -> modelo de dados   linhas(semestre) -> GRA_GRADE_HORARIA
-  front -> grafo (extra)     mover(sessao, dia, faixa): o vértice troca de cor e
-                             os conflitos com os vizinhos são recalculados
+  front -> grafo (extra)     mover(sessao, dia, faixa): o vértice só troca de cor
+                             se não criar conflitos com os vizinhos
 """
 from collections import defaultdict
 
@@ -181,7 +181,7 @@ class GradeEmMemoria:
     def mover(self, sessao, dia, faixa):
         """
         Move a sessão para começar em (dia, faixa), mantendo o número de faixas.
-        No grafo, o vértice troca de cor; devolve os conflitos que ele passou a ter.
+        Recusa movimentos que criariam conflitos com os vizinhos no grafo.
         """
         no = no_da_sessao(sessao)
         if no not in self.G:
@@ -194,12 +194,25 @@ class GradeEmMemoria:
         letras = LETRAS_FAIXA[inicio:inicio + tamanho]
         if len(letras) < tamanho or any((dia, l) not in self.hor_por_dia_faixa for l in letras):
             raise ValueError(f"a sessão tem {tamanho} faixas e não cabe a partir de {dia}{faixa}")
-        self.G.nodes[no]["cor"] = tuple(self.hor_por_dia_faixa[(dia, l)] for l in letras)
+        nova_cor = tuple(self.hor_por_dia_faixa[(dia, l)] for l in letras)
+        cores_teste = self.cores()
+        cores_teste[no] = nova_cor
+        sid = id_sessao(no)
+        conflitos = [c for c in self.conflitos(cores_teste) if sid in (c["a"], c["b"])]
+        if conflitos:
+            vizinhos = sorted({
+                c["b"] if c["a"] == sid else c["a"]
+                for c in conflitos
+            })
+            raise ValueError(
+                f"movimento recusado: conflito de horário com sessão {', '.join(vizinhos)}"
+            )
+
+        self.G.nodes[no]["cor"] = nova_cor
         if no not in self.ordem:
             self.ordem.append(no)
         self.editada = True
-        sid = id_sessao(no)
-        return [c for c in self.conflitos() if sid in (c["a"], c["b"])]
+        return conflitos
 
     # ------------------------------------------------------------- saída ----
     def linhas(self, semestre):

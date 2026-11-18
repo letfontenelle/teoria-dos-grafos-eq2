@@ -5,8 +5,8 @@
  *   - cada sessão de aula é um vértice; a "cor" do vértice são as faixas que ele ocupa;
  *   - /api/grade?passo=k devolve só os k primeiros vértices coloridos
  *     (sem cor = grade vazia, parcial, completa);
- *   - mover uma aula na tela chama /api/grade/mover: o vértice troca de cor no grafo
- *     e os conflitos com os vizinhos voltam recalculados.
+ *   - mover uma aula na tela chama /api/grade/mover: o vértice só troca de cor
+ *     se não criar conflitos com os vizinhos.
  */
 (function () {
   "use strict";
