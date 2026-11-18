@@ -54,6 +54,8 @@
     return corpo;
   }
   const post = (caminho, corpo) => api(caminho, { method: "POST", body: JSON.stringify(corpo || {}) });
+  const put = (caminho, corpo) => api(caminho, { method: "PUT", body: JSON.stringify(corpo || {}) });
+  const SEMESTRE_PREF = "2026.2"; // mesmo SEMESTRE_ATUAL do back-end
 
   function el(tag, attrs, ...filhos) {
     const e = document.createElement(tag);
@@ -762,13 +764,15 @@
         el("td", {}, el("button", {
           class: "botao",
           type: "button",
-          onclick: () => {
+          onclick: async () => {
+            await put(`/professores/${professor}/preferencias`, { semestre: SEMESTRE_PREF, horarios: [] });
             st.preferenciasPorProfessor.delete(professor);
             if ($("#sel-restricao-professor").value === String(professor)) {
               st.horariosPreferidos.clear();
               renderGradePreferencias();
             }
             renderRestricoes();
+            avisar("Preferências do professor removidas do banco.")
           },
         }, "Remover"))));
     corpo.replaceChildren(...(linhas.length ? linhas : [
@@ -797,10 +801,21 @@
       renderGradePreferencias();
     });
 
-    $("#btn-limpar-preferencias").addEventListener("click", () => {
-      st.horariosPreferidos.clear();
-      salvarPreferenciaAtual();
-      renderGradePreferencias();
+    $("#btn-reverter-preferencias").addEventListener("click", async () => {
+      const professor = $("#sel-restricao-professor").value;
+      if (!professor) {
+        avisar("Selecione um professor para desfazer as alterações.", true);
+        return;
+      }
+      try {
+        const r = await api(`/professores/${professor}/preferencias?semestre=${SEMESTRE_PREF}`);
+        st.horariosPreferidos = new Set(r.horarios);
+        salvarPreferenciaAtual();
+        renderGradePreferencias();
+        avisar("Seleção restaurada para o que está salvo no banco.");
+      } catch (e) {
+        avisar(e.message, true);
+      }
     });
 
     $("#sel-restricao-professor").addEventListener("change", e => {
@@ -812,14 +827,16 @@
       renderGradePreferencias();
     });
 
-    $("#btn-salvar-preferencias").addEventListener("click", () => {
-      if (!$("#sel-restricao-professor").value) {
-        avisar("Selecione um professor para concluir as preferências.", true);
-        return;
-      }
+    $("#btn-salvar-preferencias").addEventListener("click", async () => {
+      const professor = $("#sel-restricao-professor").value;
+      if (!professor) return avisar("Selecione um professor para concluir as preferências.", true);
       salvarPreferenciaAtual();
-      avisar("Preferências registradas para o professor selecionado; serão usadas na próxima geração da grade.");
-    });
+      try {
+        const r = await put(`/professores/${professor}/preferencias`,
+        { semestre: SEMESTRE_PREF, horarios: [...st.horariosPreferidos] });
+        avisar(`${r.registros} preferência(s) salvas no banco.`);
+      } catch (e) { avisar(e.message, true); }
+  });
 
     $("#btn-salvar-parametro").addEventListener("click", () => {
       const n = Number($("#inp-n-excedentes").value);
@@ -866,6 +883,10 @@
       return;
     }
     preencherSelects();
+    const pref = await api(`/preferencias?semestre=${SEMESTRE_PREF}`);
+    st.preferenciasPorProfessor = new Map(Object.entries(pref.preferencias_professores)
+      .map(([id, hs]) => [id, new Set(hs)]));
+    renderRestricoes();
     ligarEventos();
     renderGrade();
     renderSemestres();
